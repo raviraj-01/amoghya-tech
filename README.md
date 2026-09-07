@@ -49,6 +49,28 @@ npm run build
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
+### AMO Frame Playback
+
+`npm run dev` and `npm run build` generate 1120px WebP copies in
+`public/frames-webp` before starting Next.js. The original PNG sequences in
+`public/frames` remain untouched and are used as a fallback if a WebP fails.
+Generated copies are ignored by Git; deploy using `npm run build` with dev
+dependencies installed so Sharp can generate them. No media environment
+variables or external CDN are required for this path.
+
+Playback uses equal scroll distances per section, a shared GSAP scroll
+playhead, and Framer Motion values for character and content transforms.
+The frame cache loads four images at a time, prioritizes the current position,
+and releases images outside the nearby frame window. Mobile and reduced-motion
+visitors receive static, lazy-loaded scenes without scroll locking.
+
+Run `npm run test:frames` to check the loader's concurrency, eviction, fallback,
+and cleanup behaviour. `npm run test:handoff` verifies the opening clip's helmet
+and foot alignment against the intro's final leaning pose, and its smooth
+return to normal placement before the first content reveal.
+Do not run a production build while a development
+server uses the same `.next` directory; stop it first to avoid stale chunk URLs.
+
 ---
 
 ## 🔒 Hard Rules for Build Agents & Contributors

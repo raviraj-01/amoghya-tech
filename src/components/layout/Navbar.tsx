@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,14 @@ const NAV_ITEMS = [
 export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const reducedMotion = useReducedMotion();
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
 
   // Hide global navbar on /admin routes to allow clean admin-specific layout
   if (pathname.startsWith("/admin")) {
@@ -37,14 +46,14 @@ export function Navbar() {
             <span className="font-semibold text-content-primary text-sm tracking-tight leading-tight">
               Vyara Amogya
             </span>
-            <span className="text-[11px] text-content-muted">
+            <span className="text-[11px] text-content-secondary">
               Beyond Your Expectations
             </span>
           </div>
         </Link>
 
         {/* Desktop Nav Links */}
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden xl:flex items-center gap-1 whitespace-nowrap">
           {NAV_ITEMS.map((item) => {
             const isActive =
               item.href === "/"
@@ -69,7 +78,7 @@ export function Navbar() {
         </nav>
 
         {/* Action Button: Start a Project */}
-        <div className="hidden lg:flex items-center gap-3">
+        <div className="hidden xl:flex items-center gap-3 whitespace-nowrap">
           <Link
             href="/contact?source=global-nav"
             className="inline-flex items-center gap-2 rounded-full bg-brand-primary px-4 py-2 text-sm font-bold text-surface-base shadow-subtle transition-transform hover:scale-[1.02] active:scale-[0.98]"
@@ -83,16 +92,19 @@ export function Navbar() {
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 rounded-lg text-content-secondary hover:text-content-primary hover:bg-surface-muted"
+          className="xl:hidden p-2 rounded-lg text-content-secondary hover:text-content-primary hover:bg-surface-muted"
           aria-label="Toggle navigation menu"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-navigation"
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
       {/* Mobile Dropdown Menu */}
+      <AnimatePresence>
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-surface-elevated border-b border-border-subtle px-4 pt-3 pb-6 space-y-2 shadow-card animate-in fade-in slide-in-from-top-2">
+        <motion.div id="mobile-navigation" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reducedMotion ? 0 : 0.18 }} className="xl:hidden max-h-[calc(100dvh-4.5rem)] overflow-y-auto bg-surface-elevated border-b border-border-subtle px-4 pt-3 pb-6 space-y-2 shadow-card">
           {NAV_ITEMS.map((item) => {
             const isActive =
               item.href === "/"
@@ -125,8 +137,9 @@ export function Navbar() {
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </header>
   );
 }

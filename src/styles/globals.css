@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
   :root {
     --background: #EDEDEB;
     --foreground: #000000;
@@ -15,10 +19,29 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  :focus-visible {
+    outline: 2px solid #000;
+    outline-offset: 4px;
+  }
+
+  #pricing {
+    scroll-margin-top: 4.5rem;
+  }
+
   body[data-vat-intro-playing="true"] .vat-hide-during-intro {
     opacity: 0;
     pointer-events: none;
   }
+}
+
+body[data-amo-experience],
+body[data-amo-experience] > header,
+.amo-experience > section {
+  background-color: var(--background);
+}
+
+body[data-amo-experience] > header {
+  transition: none;
 }
 
 /* Reduced motion preference */

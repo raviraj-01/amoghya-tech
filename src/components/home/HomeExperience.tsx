@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Check, Package, Sparkles } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
+import { motion, useMotionValue, useReducedMotion } from "framer-motion";
+import { FrameCache } from "@/lib/frame-cache";
+import { introHandoffTransform } from "@/lib/intro-handoff";
 import { useExperienceStore } from "@/three/quality-controller";
 
 if (typeof window !== "undefined") {
@@ -44,11 +47,11 @@ const FRAME_FOLDERS: FrameFolder[] = [
 ];
 
 const AUTOPLAY_FPS = 30;
-const SCROLL_PX_PER_FRAME = 6;
-const CROSSFADE_FRAMES = 5;
+const SCROLL_PX_PER_SECTION = 1120;
+const CROSSFADE_PROGRESS = 0.055;
 const MOBILE_BREAKPOINT = 768;
-const FRAME_BACKGROUND = "#ededeb";
 const FRAME_RENDER_SCALE = 0.58;
+const FRAME_BACKGROUND = "#ededeb";
 
 const NARRATIVE_SECTIONS: NarrativeSection[] = [
   {
@@ -63,67 +66,67 @@ const NARRATIVE_SECTIONS: NarrativeSection[] = [
     folder: 1,
     eyebrow: "Capability Reveal",
     title: "I do quite a lot.",
-    copy: "I build things. I design things. I make things move. I help people notice things. And sometimes, I make machines do the boring stuff.",
-    bullets: ["Websites", "Apps", "Identity", "AI", "Analytics", "Campaigns"],
+    copy: "Strategy, brand, websites, apps, AI automation, content, and growth campaigns, planned as one connected business system.",
+    bullets: ["Brand", "Websites", "Apps", "AI", "Content", "Growth"],
     primary: { label: "Explore services", href: "/services" },
   },
   {
     folder: 2,
     eyebrow: "The VAT World",
-    title: "One team. Many capabilities. One coherent outcome.",
-    bullets: ["Think clearly", "Build beautifully", "Grow intelligently"],
+    title: "No vendor juggling. One team carries the context.",
+    copy: "Most businesses split work between designers, developers, marketers, and automation tools. VAT keeps the thinking, build, launch, and reporting under one roof.",
+    bullets: ["Clear strategy", "Consistent brand", "Faster delivery"],
     primary: { label: "About the company", href: "/about" },
   },
   {
     folder: 3,
     eyebrow: "Studio",
     title: "This is where ideas become real.",
-    bullets: ["Podcast recording", "Product shoots", "Video production", "Creative direction"],
+    copy: "Use the studio for product shoots, reels, podcasts, brand films, and campaign content without managing a separate production vendor.",
+    bullets: ["Product shoots", "Reels", "Podcasts", "Brand films"],
     primary: { label: "Book the Studio", href: "/studio/book" },
     secondary: { label: "View studio", href: "/studio" },
   },
   {
     folder: 4,
     eyebrow: "Technology & Intelligence",
-    title: "Good ideas need systems... I make technology feel less like technology.",
-    bullets: ["Engineering", "AI automation", "CRM pipelines", "Data dashboards", "Consulting"],
+    title: "Good ideas need systems that do the boring work.",
+    copy: "CRM, dashboards, portals, AI assistants, and workflow automation help your team respond faster and lose fewer leads.",
+    bullets: ["CRM", "Dashboards", "AI assistants", "Automation"],
     primary: { label: "Build a system", href: "/package-builder" },
   },
   {
     folder: 5,
     eyebrow: "Services Deep Dive",
-    title: "Modular capabilities, priced for clear decisions.",
-    copy: "Starter, Growth, and Enterprise tiers keep scope understandable without forcing a full table into the story.",
-    primary: { label: "See launch pricing", href: "#pricing" },
+    title: "Pick the outcome, then shape the package.",
+    copy: "Starter works for fast launches. Growth fits most businesses that need stronger design, integrations, and campaigns. Enterprise covers complex systems and multi-location operations.",
+    bullets: ["Starter", "Growth", "Enterprise"],
+    primary: { label: "See package options", href: "#pricing" },
   },
   {
     folder: 6,
     eyebrow: "Selected Work",
-    title: "Project proof belongs here.",
-    copy: "Client-approved portfolio items are still pending input, so this build does not invent case studies.",
+    title: "Built for businesses that need leads, systems, and content.",
+    copy: "From a startup's first launch to a growing restaurant, clinic, or online store: bring your brand, customer experience, and daily operations together.",
+    bullets: ["Startups", "Restaurants", "Real estate", "E-commerce"],
     primary: { label: "View all work", href: "/work" },
   },
   {
     folder: 7,
     eyebrow: "Build Your Package",
     title: "Scope your custom project.",
-    copy: "Combine brand, web, content, automation, product, campaigns, and studio time into one guided estimate.",
+    copy: "Combine only what you need: brand, website, content, AI, automation, campaigns, or studio production. The goal is a clean proposal, not a crowded menu.",
     primary: { label: "Build Your Package", href: "/package-builder" },
   },
 ];
 
 const SERVICE_TEASERS = [
-  ["Brand Strategy & Identity", "Foundational identity and market clarity.", "from ₹4K"],
-  ["Website Development", "Landing pages, business sites, portals, and commerce.", "from ₹6K"],
-  ["Mobile Application Development", "Native and cross-platform business apps.", "from ₹60K"],
-  ["Custom Software Solutions", "CRM, ERP, dashboards, and operations platforms.", "from ₹30K"],
-  ["Artificial Intelligence Solutions", "AI assistants, automations, and analytics systems.", "from ₹11K"],
-  ["Digital Marketing", "Search, social, WhatsApp, reporting, and growth retainers.", "from ₹7K/mo"],
-  ["Creative Content Production", "Photography, video, reels, films, and campaign content.", "from ₹2K"],
-  ["UI/UX Design", "Web, app, SaaS, dashboard, prototype, and design systems.", "from ₹6K"],
-  ["Cloud & Technology Services", "Infrastructure, APIs, security, performance, and DevOps.", "from ₹7K/mo"],
-  ["Business Automation", "Sales, HR, documents, reporting, and workflow automation.", "from ₹14K"],
-  ["Business Consulting", "Strategy, roadmaps, audits, and transformation planning.", "from ₹19K"],
+  ["Brand + Website Launch", "Identity, landing pages, business sites, and conversion basics for a credible market entry.", "from ₹10K"],
+  ["AI + Automation Systems", "AI assistants, CRM automation, lead management, dashboards, and workflow cleanup.", "from ₹19K"],
+  ["Content + Campaign Growth", "Product shoots, reels, ads, SEO, WhatsApp, and monthly campaign reporting.", "from ₹7K/mo"],
+  ["Apps + Portals", "Customer portals, booking systems, mobile apps, commerce flows, and internal tools.", "from ₹30K"],
+  ["Studio Production", "Podcast recording, brand films, product shoots, reels, and campaign-ready video assets.", "from ₹2K"],
+  ["Business Consulting", "Roadmaps, audits, product strategy, growth planning, and digital transformation direction.", "from ₹19K"],
 ];
 
 const PRICING_TIERS = [
@@ -140,15 +143,19 @@ const FREE_BONUSES = [
 ];
 
 const VALUE_PROPS = [
-  "One team, every service",
-  "Built-in AI advantage",
-  "Fixed, transparent pricing",
-  "Fast, clearly communicated delivery",
-  "Bengaluru-based and WhatsApp-reachable",
+  "One team for brand, tech, AI, marketing, and content",
+  "Built-in AI and automation advantage",
+  "Clear scopes before work starts",
+  "Fast delivery with direct communication",
+  "Bengaluru-based and easy to reach",
 ];
 
 function frameUrl(folder: number, frame: number) {
-  return `/frames/frame-${folder}/ezgif-frame-${String(frame).padStart(3, "0")}.png`;
+  return `/frames-webp/frame-${folder}/ezgif-frame-${String(frame).padStart(3, "0")}.webp`;
+}
+
+function pngUrl(url: string) {
+  return url.replace("/frames-webp/", "/frames/").replace(/\.webp$/, ".png");
 }
 
 function lastFrameUrl(folder: FrameFolder) {
@@ -164,6 +171,8 @@ function frameNumbers(folder: FrameFolder) {
 function availableFrameCount(folder: FrameFolder) {
   return folder.count - (folder.missing?.length ?? 0);
 }
+
+const FRAME_URLS = FRAME_FOLDERS.map(folder => frameNumbers(folder).map(frame => frameUrl(folder.id, frame)));
 
 function bezierPoint(t: number, p0: Point, p1: Point, p2: Point) {
   const x = (1 - t) ** 2 * p0.x + 2 * (1 - t) * t * p1.x + t ** 2 * p2.x;
@@ -195,28 +204,34 @@ export function HomeExperience() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imagesRef = useRef<Map<number, HTMLImageElement[]>>(new Map());
-  const loadedFoldersRef = useRef<Set<number>>(new Set());
+  const contentRef = useRef<HTMLDivElement>(null);
+  const imageLayerRef = useRef<HTMLCanvasElement | null>(null);
+  const cacheRef = useRef<FrameCache | null>(null);
+  const lastRenderRef = useRef("");
+  const posterRef = useRef<HTMLImageElement>(null);
   const rafRef = useRef<number | null>(null);
   const lastAutoplayTickRef = useRef(0);
   const currentFrameRef = useRef({ folder: 0, frame: 1 });
 
   const enable3D = useExperienceStore((s) => s.enable3D);
-  const [isStatic, setIsStatic] = useState(false);
+  const [isStatic, setIsStatic] = useState<boolean | null>(null);
   const [autoplayDone, setAutoplayDone] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
-  const [scrollStarted, setScrollStarted] = useState(false);
-  const [motionPoint, setMotionPoint] = useState<Point>({ x: 0, y: 0 });
+  const characterX = useMotionValue(0);
+  const characterY = useMotionValue(0);
+  const contentOpacity = useMotionValue(0);
+  const contentX = useMotionValue(0);
+  const setMotionPoint = useCallback((point: Point) => {
+    characterX.set(point.x);
+    characterY.set(point.y);
+  }, [characterX, characterY]);
 
-  const scrollFrameCount = useMemo(
-    () => FRAME_FOLDERS.slice(1).reduce((total, folder) => total + availableFrameCount(folder), 0),
-    []
-  );
+  const scrollSections = FRAME_FOLDERS.length - 1;
 
-  const scrollDistance = scrollFrameCount * SCROLL_PX_PER_FRAME;
+  const scrollDistance = scrollSections * SCROLL_PX_PER_SECTION;
 
   useLayoutEffect(() => {
-    if (isStatic || window.location.hash) return;
+    if (isStatic !== false || window.location.hash) return;
 
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
@@ -233,12 +248,16 @@ export function HomeExperience() {
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const width = Math.floor(rect.width * dpr);
+    const height = Math.floor(rect.height * dpr);
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
   }, []);
 
-  const drawImage = useCallback((ctx: CanvasRenderingContext2D, img: HTMLImageElement, alpha = 1) => {
+  const drawImage = useCallback((ctx: CanvasRenderingContext2D, img: HTMLImageElement, alpha = 1, handoffProgress?: number) => {
     const canvas = canvasRef.current;
     if (!canvas || !img.complete || !img.naturalWidth) return false;
 
@@ -250,73 +269,70 @@ export function HomeExperience() {
     const x = (cw - drawW) / 2;
     const y = (ch - drawH) / 2;
 
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(img, x, y, drawW, drawH);
-    ctx.globalAlpha = 1;
+    const layer = imageLayerRef.current ?? document.createElement("canvas");
+    imageLayerRef.current = layer;
+    if (layer.width !== Math.ceil(drawW) || layer.height !== Math.ceil(drawH)) {
+      layer.width = Math.ceil(drawW);
+      layer.height = Math.ceil(drawH);
+    }
+    const layerCtx = layer.getContext("2d");
+    if (!layerCtx) return false;
+    layerCtx.clearRect(0, 0, layer.width, layer.height);
+    layerCtx.drawImage(img, 0, 0, drawW, drawH);
 
-    const feather = Math.min(90, Math.max(42, Math.min(drawW, drawH) * 0.07));
+    const feather = drawW * 0.28;
+    const verticalFeather = drawH * 0.05;
     const edges = [
-      { x, y, w: feather, h: drawH, stops: [[0, 1], [1, 0]], axis: "x" },
-      { x: x + drawW - feather, y, w: feather, h: drawH, stops: [[0, 0], [1, 1]], axis: "x" },
-      { x, y, w: drawW, h: feather, stops: [[0, 1], [1, 0]], axis: "y" },
-      { x, y: y + drawH - feather, w: drawW, h: feather, stops: [[0, 0], [1, 1]], axis: "y" },
+      { x: 0, y: 0, w: feather, h: drawH, stops: [[0, 1], [1, 0]], axis: "x" },
+      { x: drawW - feather, y: 0, w: feather, h: drawH, stops: [[0, 0], [1, 1]], axis: "x" },
+      { x: 0, y: 0, w: drawW, h: verticalFeather, stops: [[0, 1], [1, 0]], axis: "y" },
+      { x: 0, y: drawH - verticalFeather, w: drawW, h: verticalFeather, stops: [[0, 0], [1, 1]], axis: "y" },
     ] as const;
 
+    // Feather the image alpha before compositing so a rotated frame cannot
+    // paint a rectangular background over the outgoing lettering.
+    layerCtx.save();
+    layerCtx.globalCompositeOperation = "destination-out";
     edges.forEach((edge) => {
       const gradient =
         edge.axis === "x"
-          ? ctx.createLinearGradient(edge.x, 0, edge.x + edge.w, 0)
-          : ctx.createLinearGradient(0, edge.y, 0, edge.y + edge.h);
+          ? layerCtx.createLinearGradient(edge.x, 0, edge.x + edge.w, 0)
+          : layerCtx.createLinearGradient(0, edge.y, 0, edge.y + edge.h);
       edge.stops.forEach(([position, opacity]) => {
-        gradient.addColorStop(position, `rgba(237, 237, 235, ${opacity * alpha})`);
+        gradient.addColorStop(position, `rgba(0, 0, 0, ${opacity})`);
       });
-      ctx.fillStyle = gradient;
-      ctx.fillRect(edge.x, edge.y, edge.w, edge.h);
+      layerCtx.fillStyle = gradient;
+      layerCtx.fillRect(edge.x, edge.y, edge.w, edge.h);
     });
-
-    return true;
-  }, []);
-
-  const drawBackdrop = useCallback((ctx: CanvasRenderingContext2D, img: HTMLImageElement, alpha = 1) => {
-    const canvas = canvasRef.current;
-    if (!canvas || !img.complete || !img.naturalWidth) return false;
-
-    const cw = canvas.width;
-    const ch = canvas.height;
-    const ratio = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
-    const drawW = img.naturalWidth * ratio;
-    const drawH = img.naturalHeight * ratio;
-    const x = (cw - drawW) / 2;
-    const y = (ch - drawH) / 2;
-
+    layerCtx.restore();
     ctx.save();
-    ctx.globalAlpha = alpha * 0.55;
-    ctx.filter = "blur(18px)";
-    ctx.drawImage(img, x - 18, y - 18, drawW + 36, drawH + 36);
+    if (handoffProgress !== undefined) {
+      const { a, b, tx, ty } = introHandoffTransform(handoffProgress);
+      ctx.translate(x, y);
+      ctx.transform(a, b, -b, a, tx * drawW / 1920, ty * drawH / 1080);
+      ctx.translate(-x, -y);
+    }
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(layer, x, y, drawW, drawH);
     ctx.restore();
+
     return true;
   }, []);
 
-  const preloadFolder = useCallback((folderId: number) => {
-    if (loadedFoldersRef.current.has(folderId) || imagesRef.current.has(folderId)) return;
-
-    const folder = FRAME_FOLDERS.find((item) => item.id === folderId);
-    if (!folder) return;
-
-    const images: HTMLImageElement[] = [];
-    imagesRef.current.set(folderId, images);
-
-    frameNumbers(folder).forEach((frame) => {
-      const img = new window.Image();
-      img.decoding = frame === 1 ? "sync" : "async";
-      img.src = frameUrl(folder.id, frame);
-      img.onload = () => {
-        if (images.every((image) => image.complete && image.naturalWidth > 0)) {
-          loadedFoldersRef.current.add(folderId);
-        }
-      };
-      images.push(img);
-    });
+  const preloadFrames = useCallback((folderId: number, frameIndex: number) => {
+    const urls = FRAME_URLS[folderId];
+    if (!urls) return;
+    const index = Math.min(urls.length - 1, Math.max(0, Math.floor(frameIndex)));
+    const wanted = [urls[index]];
+    const previous = FRAME_URLS[folderId - 1];
+    if (previous && index / (urls.length - 1) <= CROSSFADE_PROGRESS) wanted.push(previous[previous.length - 1]);
+    for (let offset = 1; offset <= 24; offset++) {
+      if (urls[index + offset]) wanted.push(urls[index + offset]);
+      if (folderId > 0 && offset <= 12 && urls[index - offset]) wanted.push(urls[index - offset]);
+    }
+    // Keep the next scene's opening ready, including for a fast wheel or anchor jump.
+    wanted.push(...(FRAME_URLS[folderId + 1]?.slice(0, 6) ?? []));
+    cacheRef.current?.request(wanted);
   }, []);
 
   const renderFrame = useCallback(
@@ -324,74 +340,82 @@ export function HomeExperience() {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      resizeCanvas();
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
       const folder = FRAME_FOLDERS.find((item) => item.id === folderId);
-      const images = imagesRef.current.get(folderId);
-      if (!folder || !images) return;
+      const urls = FRAME_URLS[folderId];
+      if (!folder || !urls) return;
 
-      const frameIndex = Math.min(images.length - 1, Math.max(0, Math.floor(frameFloat)));
-      const current = images[frameIndex];
+      const frameIndex = Math.min(urls.length - 1, Math.max(0, Math.floor(frameFloat)));
+      preloadFrames(folderId, frameIndex);
+      const current = cacheRef.current?.get(urls[frameIndex]);
+      if (cacheRef.current?.failed(urls[frameIndex])) {
+        setIsStatic(true);
+        return;
+      }
       if (!current || !current.complete || !current.naturalWidth) return;
 
+      const previousUrls = FRAME_URLS[folderId - 1];
+      const previous = previousUrls ? cacheRef.current?.get(previousUrls[previousUrls.length - 1]) : undefined;
+      const sectionProgress = frameFloat / (urls.length - 1);
+      if (previousUrls && sectionProgress < CROSSFADE_PROGRESS && cacheRef.current?.failed(previousUrls[previousUrls.length - 1])) {
+        setIsStatic(true);
+        return;
+      }
+      if (folderId > 0 && sectionProgress < CROSSFADE_PROGRESS && !previous) return;
+      const blend = previous?.complete && previous.naturalWidth
+        ? Math.min(1, sectionProgress / CROSSFADE_PROGRESS)
+        : 1;
+      const handoffProgress = folderId === 1 ? sectionProgress : undefined;
+      const renderKey = `${folderId}:${frameIndex}:${blend.toFixed(3)}:${handoffProgress?.toFixed(5)}:${canvas.width}:${canvas.height}`;
+      if (lastRenderRef.current === renderKey) return true;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = FRAME_BACKGROUND;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      if (folderId > 0 && frameIndex < CROSSFADE_FRAMES) {
-        const previousFolder = FRAME_FOLDERS.find((item) => item.id === folderId - 1);
-        const previousImages = imagesRef.current.get(folderId - 1);
-        const previous = previousFolder && previousImages ? previousImages[previousImages.length - 1] : null;
-        const blend = Math.min(1, Math.max(0, frameIndex / CROSSFADE_FRAMES));
-
-        if (previous) drawBackdrop(ctx, previous, 1 - blend);
-        drawBackdrop(ctx, current, blend);
-        if (previous) drawImage(ctx, previous, 1 - blend);
-        drawImage(ctx, current, blend);
+      if (folderId > 0 && blend < 1) {
+        if (previous) drawImage(ctx, previous, folderId === 1 ? 1 - blend : 1);
+        drawImage(ctx, current, blend, handoffProgress);
       } else {
-        drawBackdrop(ctx, current);
-        drawImage(ctx, current);
+        drawImage(ctx, current, 1, handoffProgress);
       }
 
       currentFrameRef.current = { folder: folderId, frame: frameIndex + 1 };
+      lastRenderRef.current = renderKey;
+      if (posterRef.current) posterRef.current.style.display = "none";
+      return true;
     },
-    [drawBackdrop, drawImage, resizeCanvas]
+    [drawImage, preloadFrames]
   );
 
   const frameFromScrollProgress = useCallback(
     (progress: number) => {
-      const target = progress * (scrollFrameCount - 1);
-      let cursor = 0;
+      const sectionFolders = FRAME_FOLDERS.slice(1);
+      const normalizedProgress = Math.min(1, Math.max(0, progress));
+      const sectionTarget = normalizedProgress * sectionFolders.length;
+      const sectionSlot = Math.min(sectionFolders.length - 1, Math.floor(sectionTarget));
+      const sectionProgress = sectionSlot === sectionFolders.length - 1 && normalizedProgress === 1
+        ? 1
+        : sectionTarget - sectionSlot;
+      const folder = sectionFolders[sectionSlot] ?? sectionFolders[0];
+      const count = availableFrameCount(folder);
 
-      for (let i = 1; i < FRAME_FOLDERS.length; i++) {
-        const folder = FRAME_FOLDERS[i];
-        const count = availableFrameCount(folder);
-        const nextCursor = cursor + count;
-
-        if (target < nextCursor || i === FRAME_FOLDERS.length - 1) {
-          return {
-            sectionIndex: i,
-            folderId: folder.id,
-            localFrame: Math.min(count - 1, target - cursor),
-            sectionProgress: Math.min(1, Math.max(0, (target - cursor) / Math.max(1, count - 1))),
-          };
-        }
-
-        cursor = nextCursor;
-      }
-
-      return { sectionIndex: 1, folderId: 1, localFrame: 0, sectionProgress: 0 };
+      return {
+        sectionIndex: folder.id,
+        folderId: folder.id,
+        localFrame: sectionProgress * Math.max(1, count - 1),
+        sectionProgress,
+      };
     },
-    [scrollFrameCount]
+    []
   );
 
   useEffect(() => {
     const media = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    const sync = () => setIsStatic(media.matches || reduce.matches || !enable3D);
+    const sync = () => setIsStatic(media.matches || reduce.matches || !enable3D || Boolean(window.location.hash));
     sync();
 
     media.addEventListener("change", sync);
@@ -404,39 +428,51 @@ export function HomeExperience() {
   }, [enable3D]);
 
   useEffect(() => {
-    if (isStatic) {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-      return;
-    }
-
-    preloadFolder(0);
-    preloadFolder(1);
-  }, [isStatic, preloadFolder]);
+    if (isStatic !== false) return;
+    const cache = new FrameCache();
+    cacheRef.current = cache;
+    resizeCanvas();
+    lastRenderRef.current = "";
+    preloadFrames(0, 0);
+    return () => { cache.dispose(); cacheRef.current = null; };
+  }, [isStatic, preloadFrames, resizeCanvas]);
 
   useEffect(() => {
-    if (isStatic || autoplayDone) return;
+    if (isStatic !== false || autoplayDone) return;
 
+    const bodyOverflow = document.body.style.overflow;
+    const htmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
 
+    let nextFrame = 0;
+    let lastSuccess = performance.now();
+    lastAutoplayTickRef.current = 0;
     const tick = (time: number) => {
-      if (!lastAutoplayTickRef.current) lastAutoplayTickRef.current = time;
-      const elapsedFrames = Math.floor(((time - lastAutoplayTickRef.current) / 1000) * AUTOPLAY_FPS);
       const introFrameCount = availableFrameCount(FRAME_FOLDERS[0]);
-      const frame = Math.min(introFrameCount, 1 + elapsedFrames);
+      if (document.hidden) {
+        lastAutoplayTickRef.current = time;
+        lastSuccess = time;
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      if (time - lastSuccess > 12000) {
+        setIsStatic(true);
+        return;
+      }
+      if (nextFrame < introFrameCount && time - lastAutoplayTickRef.current >= 1000 / AUTOPLAY_FPS && renderFrame(0, nextFrame)) {
+        nextFrame += 1;
+        lastSuccess = time;
+        lastAutoplayTickRef.current = time - Math.min((time - lastAutoplayTickRef.current) % (1000 / AUTOPLAY_FPS), 1000 / AUTOPLAY_FPS);
+        setMotionPoint(getMotionPoint(0, nextFrame / introFrameCount));
+      }
 
-      renderFrame(0, frame - 1);
-      setMotionPoint(getMotionPoint(0, frame / introFrameCount));
-
-      if (frame >= introFrameCount) {
-        renderFrame(1, 0);
+      if (nextFrame >= introFrameCount && renderFrame(1, 0)) {
         setActiveSection(1);
         setMotionPoint(getMotionPoint(1, 0));
-        setScrollStarted(false);
         setAutoplayDone(true);
-        document.body.style.overflow = "";
-        document.documentElement.style.overflow = "";
+        document.body.style.overflow = bodyOverflow;
+        document.documentElement.style.overflow = htmlOverflow;
         return;
       }
 
@@ -447,41 +483,64 @@ export function HomeExperience() {
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = htmlOverflow;
     };
-  }, [autoplayDone, isStatic, renderFrame]);
+  }, [autoplayDone, isStatic, renderFrame, setMotionPoint]);
 
   useEffect(() => {
-    if (isStatic || !autoplayDone || !containerRef.current || !pinRef.current) return;
+    if (isStatic !== false || !autoplayDone || !containerRef.current || !pinRef.current) return;
 
+    let pendingFrame = 0;
     const ctx = gsap.context(() => {
-      ScrollTrigger.create({
-        trigger: containerRef.current,
-        pin: pinRef.current,
-        start: "top top+=72",
-        end: `+=${scrollDistance}`,
-        scrub: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-        onUpdate: (self) => {
-          const frame = frameFromScrollProgress(self.progress);
-          preloadFolder(frame.folderId + 1);
-          renderFrame(frame.folderId, frame.localFrame);
-          setActiveSection(frame.sectionIndex);
-          setScrollStarted(self.progress > 0.035 && frame.sectionProgress > 0.16);
-          setMotionPoint(getMotionPoint(frame.sectionIndex, frame.sectionProgress));
+      const playhead = { progress: 0 };
+      const update = () => {
+        cancelAnimationFrame(pendingFrame);
+        const frame = frameFromScrollProgress(playhead.progress);
+        if (!renderFrame(frame.folderId, frame.localFrame)) {
+          pendingFrame = requestAnimationFrame(update);
+          return;
+        }
+        setActiveSection(frame.sectionIndex);
+        const enter = easeInOutCubic(Math.min(1, Math.max(0, (frame.sectionProgress - 0.5) / 0.14)));
+        const leave = frame.folderId === 7 ? 1 : Math.min(1, (1 - frame.sectionProgress) / 0.12);
+        const opacity = Math.min(enter, leave);
+        contentOpacity.set(opacity);
+        contentX.set((frame.sectionIndex % 2 === 1 ? 28 : -28) * (1 - enter));
+        if (contentRef.current) {
+          contentRef.current.style.visibility = opacity > 0.01 ? "visible" : "hidden";
+          contentRef.current.style.pointerEvents = opacity > 0.95 ? "auto" : "none";
+          contentRef.current.setAttribute("aria-hidden", String(opacity <= 0.01));
+        }
+        setMotionPoint(getMotionPoint(frame.sectionIndex, frame.sectionProgress));
+      };
+      gsap.to(playhead, {
+        progress: 1,
+        ease: "none",
+        onUpdate: update,
+        scrollTrigger: {
+          trigger: containerRef.current,
+          pin: pinRef.current,
+          start: "top top+=72",
+          end: `+=${scrollDistance}`,
+          scrub: 0.35,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+          onRefresh: update,
         },
       });
     }, containerRef);
 
     ScrollTrigger.refresh();
 
-    return () => ctx.revert();
-  }, [autoplayDone, frameFromScrollProgress, isStatic, preloadFolder, renderFrame, scrollDistance]);
+    return () => {
+      cancelAnimationFrame(pendingFrame);
+      ctx.revert();
+    };
+  }, [autoplayDone, contentOpacity, contentX, frameFromScrollProgress, isStatic, renderFrame, scrollDistance, setMotionPoint]);
 
   useEffect(() => {
-    if (isStatic) return;
+    if (isStatic !== false) return;
 
     const onResize = () => {
       resizeCanvas();
@@ -494,7 +553,7 @@ export function HomeExperience() {
   }, [isStatic, renderFrame, resizeCanvas]);
 
   useEffect(() => {
-    if (isStatic || autoplayDone) {
+    if (isStatic !== false || autoplayDone) {
       document.body.removeAttribute("data-vat-intro-playing");
       return;
     }
@@ -507,8 +566,14 @@ export function HomeExperience() {
   }, [autoplayDone, isStatic]);
 
   const visibleSection = NARRATIVE_SECTIONS.find((section) => section.folder === activeSection) ?? NARRATIVE_SECTIONS[0];
-  const contentOnRight = motionPoint.x < 0;
-  const contentVisible = autoplayDone && scrollStarted && Math.abs(motionPoint.x) > 3;
+  const contentOnRight = activeSection % 2 === 1;
+
+  useEffect(() => {
+    document.body.toggleAttribute("data-amo-experience", isStatic === false);
+    return () => {
+      document.body.removeAttribute("data-amo-experience");
+    };
+  }, [isStatic]);
 
   if (isStatic) {
     return (
@@ -520,31 +585,37 @@ export function HomeExperience() {
   }
 
   return (
-    <div className="bg-[#ededeb] text-black">
+    <div className="amo-experience text-black" style={{ backgroundColor: FRAME_BACKGROUND }}>
+      <h1 className="sr-only">Vyara Amoghya Technologies</h1>
       <section
         ref={containerRef}
         className="relative"
-        style={{ minHeight: `${scrollDistance + 720}px` }}
         aria-label="AMO guided landing narrative"
       >
         <div ref={pinRef} className="relative h-[calc(100vh-4.5rem)] min-h-[600px] overflow-hidden" style={{ backgroundColor: FRAME_BACKGROUND }}>
-          <div
+          <motion.div
             className="absolute -inset-x-[8vw] -inset-y-[8vh]"
             style={{
-              transform: `translate(${motionPoint.x}px, ${motionPoint.y}px)`,
+              x: characterX, y: characterY,
+              willChange: "transform",
             }}
           >
+            <img ref={posterRef} src={FRAME_URLS[0][0]} alt="" width={1120} height={630} fetchPriority="high" className="absolute inset-0 h-full w-full object-cover" style={{ transform: `scale(${FRAME_RENDER_SCALE})` }} onError={event => { if (!event.currentTarget.src.endsWith(".png")) event.currentTarget.src = pngUrl(FRAME_URLS[0][0]); }} />
             <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />
-          </div>
+          </motion.div>
 
           <div
+            ref={contentRef}
             className={[
-              "absolute top-1/2 w-[min(32vw,360px)] -translate-y-1/2 transition-opacity duration-300",
+              "absolute top-1/2 w-[min(32vw,360px)] -translate-y-1/2",
               contentOnRight ? "right-[8vw]" : "left-[8vw]",
-              contentVisible ? "opacity-100" : "pointer-events-none opacity-0",
             ].join(" ")}
+            style={{ visibility: "hidden" }}
+            aria-hidden="true"
           >
+            <motion.div style={{ opacity: contentOpacity, x: contentX }}>
             <NarrativeCard section={visibleSection} />
+            </motion.div>
           </div>
         </div>
       </section>
@@ -555,12 +626,13 @@ export function HomeExperience() {
 }
 
 function NarrativeCard({ section }: { section: NarrativeSection }) {
+  const Heading = section.folder === 0 ? "h1" : "h2";
   return (
     <div className="space-y-6">
       <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-black/50">{section.eyebrow}</p>
-      <h1 className="text-2xl font-black leading-[1.05] text-black sm:text-3xl lg:text-[2rem]">
+      <Heading className="text-2xl font-black leading-[1.05] text-black sm:text-3xl lg:text-[2rem]">
         {section.title}
-      </h1>
+      </Heading>
       {section.copy ? <p className="text-sm leading-6 text-black/70">{section.copy}</p> : null}
       {section.bullets ? (
         <div className="flex flex-wrap gap-2">
@@ -588,7 +660,7 @@ function StaticNarrative() {
           return (
             <article key={section.folder} className="grid gap-8 lg:grid-cols-2 lg:items-center">
               <div className="relative mx-auto aspect-video w-full overflow-hidden bg-[#ededeb]">
-                <img src={lastFrameUrl(folder)} alt="" className="h-full w-full object-cover" />
+                <img src={lastFrameUrl(folder)} alt="AMO, the VAT studio character" width={1120} height={630} loading={section.folder === 0 ? "eager" : "lazy"} decoding="async" onError={event => { const img = event.currentTarget; if (!img.src.endsWith(".png")) img.src = pngUrl(lastFrameUrl(folder)); }} className="h-full w-full object-contain" />
               </div>
               <NarrativeCard section={section} />
             </article>
@@ -608,19 +680,28 @@ function LandingSections() {
   );
 }
 
+function Reveal({ children, className }: { children: React.ReactNode; className: string }) {
+  const reducedMotion = useReducedMotion();
+  return (
+    <motion.div className={className} initial={reducedMotion ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.08 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+      {children}
+    </motion.div>
+  );
+}
+
 function PricingPreview() {
   return (
     <section id="pricing" className="border-y border-black/10 bg-[#ededeb] py-14">
-      <div className="mx-auto max-w-container px-4 sm:px-6 lg:px-8">
+      <Reveal className="mx-auto max-w-container px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full bg-[#C8FF3D] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-black">
               <Sparkles className="h-4 w-4" />
-              Launch Pricing valid through 5 September 2026
+              Founding-client package options
             </div>
             <h2 className="text-2xl font-black leading-none text-black sm:text-3xl">Clear ways to start.</h2>
             <p className="text-sm leading-6 text-black/65">
-              The landing page keeps pricing light and glanceable. Full tables, all 22 industry bundles, GST notes, and milestones belong in the package builder/detail view.
+              Start with the essentials or plan a complete launch. Explore our services, then build a package around your goals, timeline, and budget.
             </p>
           </div>
           <PrimaryButton href="/package-builder">Build Your Package</PrimaryButton>
@@ -657,10 +738,10 @@ function PricingPreview() {
         </div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2">
-          <BundleTeaser title="Startup Launch Bundle" copy="Startups save ₹5K with Business Website + Logo Design + Brand Strategy + Performance Marketing." />
-          <BundleTeaser title="Restaurant Launch Bundle" copy="Restaurants & Cafés save ₹5K with Business Website + Product Photography + Reels + WhatsApp Marketing." />
+          <BundleTeaser title="Startup Launch Bundle" copy="Business website, logo design, brand strategy, and performance marketing for founders who need a clean first launch." />
+          <BundleTeaser title="Restaurant Launch Bundle" copy="Business website, product photography, social reels, and WhatsApp marketing for food brands that need faster visibility." />
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -697,12 +778,12 @@ function BundleTeaser({ title, copy }: { title: string; copy: string }) {
 function ClosingContact() {
   return (
     <section className="bg-[#ededeb] py-16">
-      <div className="mx-auto grid max-w-container gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
+      <Reveal className="mx-auto grid max-w-container gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
         <div className="space-y-6">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-black/50">Contact</p>
           <h2 className="text-3xl font-black leading-none text-black sm:text-4xl">So... what are we building?</h2>
           <p className="max-w-2xl text-sm leading-6 text-black/65">
-            Start a project, book the studio, build a package, or schedule a discovery call. Each path keeps the commercial flow usable without animation.
+            Tell us what you have in mind. We will help you choose the right services, define the scope, and plan the next step.
           </p>
           <div className="flex flex-wrap gap-3">
             <PrimaryButton href="/contact?source=closing-start">Start a Project</PrimaryButton>
@@ -718,7 +799,7 @@ function ClosingContact() {
             Established 2025. VAT Creative Studio brings strategy, brand, engineering, AI automation, marketing, content, and studio production under one roof.
           </p>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
