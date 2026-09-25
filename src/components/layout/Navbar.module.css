@@ -455,8 +455,20 @@
 }
 
 .homeHeader .mobileRow button {
+  display: grid;
+  place-items: center;
   width: 44px;
   height: 44px;
+  padding: 0;
+  border: 1px solid #718943;
+  border-radius: 0;
+  background: transparent;
+  color: #17241c;
+}
+
+.homeHeader .mobileRow button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #d2fa69;
 }
 
 .homeHeader .mobileMenu>div[id],

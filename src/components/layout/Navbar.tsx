@@ -254,14 +254,13 @@ export function Navbar() {
             initial={{ opacity: 0, y: reduced ? 0 : -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            onMouseLeave={() => setServicesOpen(false)}
           >
             {pages.map((item) => (
               <div
                 key={item.href}
                 className={styles.mobileRow}
-                onMouseEnter={() => {
-                  if (item.href === "/services") setServicesOpen(true);
-                }}
+                onMouseEnter={() => setServicesOpen(item.href === "/services")}
               >
                 <Link
                   href={item.href}
@@ -283,7 +282,20 @@ export function Navbar() {
                 )}
               </div>
             ))}
-            {servicesOpen && <div id="mobile-services-menu">{menuContent}</div>}
+            <AnimatePresence initial={false}>
+              {servicesOpen && (
+                <motion.div
+                  id="mobile-services-menu"
+                  initial={{ opacity: 0, height: 0, y: -8 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -8 }}
+                  transition={{ duration: reduced ? 0 : 0.22, ease: "easeOut" }}
+                  style={{ overflow: "hidden" }}
+                >
+                  {menuContent}
+                </motion.div>
+              )}
+            </AnimatePresence>
             <Link
               className={`${styles.mobileProject} vat-contact-action`}
               href="/contact?source=mobile-nav"
