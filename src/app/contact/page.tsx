@@ -1,5 +1,7 @@
-import { Mail, Phone, MessageSquare, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, Mail, MapPin, MessageSquare } from "lucide-react";
 import { ContactForm } from "@/components/contact/ContactForm";
+import { CONTACT_EMAIL } from "@/lib/contact-details";
+import styles from "./contact.module.css";
 
 export const metadata = {
   title: "Contact & Start a Project | Vyara Amogya Technologies",
@@ -8,53 +10,40 @@ export const metadata = {
 
 export default function ContactPage() {
   return (
-    <div className="py-16 sm:py-24 max-w-container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mb-12">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-muted border border-border-subtle text-xs font-mono text-content-secondary mb-4">
-          <MessageSquare className="w-3.5 h-3.5 text-brand-secondary" />
-          <span>Project Inquiry & Lead Capture (PRD §11)</span>
-        </div>
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-content-primary">
-          Start a Project
-        </h1>
-        <p className="mt-4 text-lg text-content-secondary leading-relaxed">
-          Tell us about your objectives, timeline, and vision. We will review your brief and schedule a discovery call.
-        </p>
-      </div>
+    <PageExperience variant="contact"><div className={styles.page}>
+      <header className={styles.hero}>
+        <div className={styles.heroIcon}><MessageSquare size={24} aria-hidden="true" /></div>
+        <p className={styles.eyebrow}>Start a conversation</p>
+        <h1>Let&apos;s build what comes next.</h1>
+        <p>Tell us where you are, where you want to go, and what is getting in the way. We will turn that into a clear first conversation.</p>
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}<ArrowUpRight size={19} aria-hidden="true" /></a>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Form Container (PRD §11 fields) */}
-        <div className="lg:col-span-2 p-8 rounded-2xl bg-surface-elevated border border-border-subtle shadow-subtle">
+      <div className={styles.content}>
+        <section className={styles.formPanel} aria-labelledby="project-brief-heading">
+          <div className={styles.sectionHeading}><p className={styles.eyebrow}>Your brief</p><h2 id="project-brief-heading">A few details to begin.</h2></div>
           <ContactForm />
-        </div>
+        </section>
 
-        {/* Sidebar Info */}
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-surface-elevated border border-border-subtle shadow-subtle space-y-4">
-            <h3 className="text-sm font-bold text-content-primary">Direct Inquiries</h3>
-            <div className="space-y-2 text-xs text-content-secondary">
-              <p className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-brand-secondary" />
-                <span>hello@amoghya.tech</span>
-              </p>
-              <p className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-brand-secondary" />
-                <span>Studio & Sales Direct Line</span>
-              </p>
-            </div>
+        <aside className={styles.sidebar}>
+          <div className={styles.sidePanel}>
+            <p className={styles.eyebrow}>Direct inquiries</p>
+            <h2>Prefer email?</h2>
+            <a href={`mailto:${CONTACT_EMAIL}`}><Mail size={18} aria-hidden="true" /><span>{CONTACT_EMAIL}</span><ArrowUpRight size={18} aria-hidden="true" /></a>
           </div>
-
-          <div className="p-6 rounded-2xl bg-surface-muted border border-border-subtle space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-content-primary">
-              <ShieldCheck className="w-4 h-4 text-status-success" />
-              <span>Lead Routing & CRM</span>
-            </div>
-            <p className="text-xs text-content-secondary leading-relaxed">
-              Every inquiry is validated, bot-protected, attributed to its acquisition source, and routed directly to our team.
-            </p>
+          <div className={styles.location}>
+            <MapPin size={20} aria-hidden="true" />
+            <div><strong>Bengaluru, Karnataka</strong><p>Strategy, design, technology and creative production from one Amoghya team.</p></div>
           </div>
-        </div>
+          <div className={styles.steps}>
+            <p className={styles.eyebrow}>What happens next</p>
+            <ol><li><span>01</span><p>We review the brief.</p></li><li><span>02</span><p>We arrange a discovery call.</p></li><li><span>03</span><p>We define the scope and next step.</p></li></ol>
+          </div>
+        </aside>
       </div>
-    </div>
+      <ProjectQuestions variant="contact" />
+    </div></PageExperience>
   );
 }
+import { PageExperience } from "@/components/offerings/PageExperience";
+import { ProjectQuestions } from "@/components/offerings/ProjectQuestions";

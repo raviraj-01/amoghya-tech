@@ -1,0 +1,30 @@
+.page { max-width: 1280px; margin: 0 auto; padding: 72px 32px 80px; color: #181b18; }
+.hero { position: relative; min-height: 430px; display: flex; flex-direction: column; justify-content: end; padding: 56px; background: #171a17; color: #f6f7f2; overflow: hidden; }
+.hero::after { content: "HELLO"; position: absolute; right: -10px; bottom: -22px; color: rgba(255,255,255,.04); font: 500 180px/.8 var(--font-heading), serif; pointer-events: none; }
+.heroIcon { display: grid; width: 48px; height: 48px; place-items: center; margin-bottom: 24px; border: 1px solid #9aac84; border-radius: 8px; background: #e5ebcd; color: #263623; }
+.eyebrow { position: relative; z-index: 1; margin-bottom: 18px; text-transform: uppercase; color: #8b9686; font: 12px var(--font-mono), monospace; }
+.hero .eyebrow { color: #c8ff3d; }
+.hero h1 { position: relative; z-index: 1; max-width: 780px; font-size: 54px; line-height: 1.08; }
+.hero > p:not(.eyebrow) { position: relative; z-index: 1; max-width: 600px; margin-top: 22px; color: #c0c7bc; font-size: 19px; line-height: 1.7; }
+.hero > a { position: relative; z-index: 1; display: inline-flex; width: fit-content; align-items: center; gap: 18px; margin-top: 28px; padding-bottom: 8px; border-bottom: 1px solid #c8ff3d; font-size: 18px; }
+.content { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, .75fr); gap: 24px; margin-top: 24px; align-items: start; }
+.formPanel { padding: 42px 0; background: transparent; border-top: 2px solid #7d965f; }
+.sectionHeading { padding-bottom: 30px; margin-bottom: 32px; border-bottom: 1px solid #00000018; }
+.sectionHeading h2, .sidePanel h2 { font-size: 30px; line-height: 1.2; }
+.sidebar { display: grid; gap: 18px; }
+.sidePanel { padding: 30px; background: #e5ebcd; border-radius: 8px; border-top: 3px solid #8ba762; }
+.sidePanel .eyebrow { color: #3f4b2d; }
+.sidePanel a { display: flex; align-items: center; gap: 12px; margin-top: 28px; padding: 16px 0; border-top: 1px solid #0000002b; font-size: 16px; }
+.sidePanel a span { min-width: 0; overflow-wrap: anywhere; }
+.sidePanel a svg:last-child { margin-left: auto; flex-shrink: 0; }
+.location, .steps { padding: 28px; border: 1px solid #0000001c; background: #e2e7df; }
+.location { display: flex; gap: 16px; }
+.location > svg { flex-shrink: 0; color: #587229; }
+.location strong { font-size: 17px; }
+.location p { margin-top: 10px; color: #535b50; font-size: 16px; line-height: 1.65; }
+.steps ol { display: grid; gap: 0; }
+.steps li { display: grid; grid-template-columns: 32px 1fr; gap: 14px; padding: 17px 0; border-top: 1px solid #0000001a; }
+.steps li span { color: #687260; font: 11px var(--font-mono), monospace; }
+.steps li p { font-size: 16px; }
+@media(max-width: 900px) { .content { grid-template-columns: 1fr; } .sidebar { grid-template-columns: 1fr 1fr; } .steps { grid-column: 1 / -1; } }
+@media(max-width: 600px) { .page { padding: 40px 20px 56px; } .hero { min-height: 520px; padding: 34px 24px; margin-inline: -20px; } .hero::after { right: -40px; font-size: 120px; } .heroIcon { top: 28px; right: 24px; } .hero h1 { font-size: 40px; } .hero > p:not(.eyebrow) { font-size: 17px; } .content, .sidebar { grid-template-columns: 1fr; } .steps { grid-column: auto; } .formPanel { padding: 28px 22px; } }

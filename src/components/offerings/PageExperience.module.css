@@ -1,0 +1,52 @@
+.experience { color: #202820; }
+.readingProgress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 80; pointer-events: none; transform: scaleX(0); transform-origin: left; background: #85a954; }
+.experience article > svg { transition: transform 350ms ease; }
+.experience article:hover > svg { transform: rotate(-8deg) scale(1.08); }
+.experience article:focus-within { border-color: #78974d; }
+.experience section h2 { text-wrap: balance; }
+.experience [data-page-reveal] { overflow-wrap: anywhere; }
+.experience > div > header { background: transparent; color: #202820; padding: 40px 0 56px; min-height: 340px; border-bottom: 1px solid #26362335; overflow: visible; }
+.experience > div > header::after { display: none; }
+.experience > div > header h1 { max-width: 850px; font-size: 56px; line-height: 1.15; }
+.experience > div > header > p:first-of-type { color: #536b39; }
+.experience > div > header > p:not(:first-of-type) { color: #596254; font-size: 22px; max-width: 650px; }
+.experience > div > header > a { background: #202820; color: #f5f7ef; box-shadow: none; border-radius: 4px; padding: 16px 24px; }
+.experience > div > header > a svg { color: #c8ef87; }
+.experience a { transition: color 220ms ease, background-color 220ms ease, border-color 220ms ease; }
+.experience a > svg:last-child { transition: transform 250ms ease; }
+.experience a:hover > svg:last-child, .experience a:focus-visible > svg:last-child { transform: translate(3px, -3px); }
+.experience article { border-radius: 8px; box-shadow: none; transition: background-color 250ms ease, border-color 250ms ease; }
+.experience article:hover { transform: none; box-shadow: none; border-color: #80956a; }
+.experience[data-page="work"] article { padding: 32px; min-height: 400px; background: #f7f8f3; border-top: 4px solid #8fa86f; }
+.experience[data-page="work"] article:nth-child(3n + 2) { background: #dce9ed; border-top-color: #7197a0; }
+.experience[data-page="work"] article:nth-child(3n) { background: #ecdfe1; border-top-color: #ae828e; }
+.experience[data-page="work"] article h3 { font-size: 28px; }
+.experience[data-page="work"] article > p { font-size: 19px; }
+.experience[data-page="work"] article ul { padding-top: 20px; border-top: 1px solid #20302020; }
+.experience [data-industry-nav] { display: flex; flex-wrap: wrap; gap: 12px 28px; padding: 0 0 28px; }
+.experience [data-industry-nav] a { display: inline-flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 18px; border-bottom: 1px solid #82937860; }
+.experience [data-industry-nav] a:hover { color: #587334; border-color: currentColor; }
+.experience article[id] { scroll-margin-top: 120px; }
+.experience[data-page="studio"] article { min-height: 280px; background: #f6f7f2; border: 0; border-bottom: 1px solid #27342640; border-radius: 0; }
+.experience[data-page="studio"] article:nth-child(2), .experience[data-page="studio"] article:nth-child(5) { background: #dce6e9; }
+.experience[data-page="studio"] article > svg { height: 48px; width: 48px; padding: 10px; background: #e5edcf; border-radius: 8px; }
+.experience[data-page="studio"] article:hover { background: #e8eedf; }
+.experience[data-page="studio"] section > ol { counter-reset: production; gap: 0; }
+.experience[data-page="studio"] section > ol > li { padding: 26px; border-top: 2px solid #7d965f; border-right: 1px solid #27342625; background: #e5eadf; }
+.experience[data-page="studio"] section > ol > li:nth-child(even) { background: #eef1e9; }
+.experience[data-page="about"] article { padding: 32px; }
+.experience[data-page="about"] article:nth-child(2) { background: #dce9ed; }
+.experience[data-page="about"] article:nth-child(3) { background: #ece1df; }
+.experience[data-page="about"] article > svg { width: 40px; height: 40px; padding: 8px; background: #fff9; border-radius: 50%; }
+.experience[data-page="contact"] aside { position: sticky; top: 110px; }
+.experience[data-page="contact"] form :is(input, textarea, select) { transition: border-color 200ms ease, box-shadow 200ms ease; }
+.experience[data-page="contact"] form :is(input, textarea, select):focus { outline: 2px solid #7d965f; outline-offset: 3px; }
+@media(max-width: 900px) { .experience[data-page="contact"] aside { position: static; } }
+@media(max-width: 600px) {
+  .experience > div > header { margin-inline: 0; padding: 28px 0 40px; min-height: 0; }
+  .experience > div > header h1 { font-size: 36px; overflow-wrap: anywhere; }
+  .experience > div > header > p:not(:first-of-type) { font-size: 20px; }
+  .experience[data-page="work"] article { min-height: 0; padding: 26px; }
+  .experience[data-page="studio"] section > ol > li { padding: 20px 16px; }
+}
+@media(prefers-reduced-motion: reduce) { .experience *, .experience *::after { transition: none !important; } }

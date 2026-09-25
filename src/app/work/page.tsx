@@ -1,61 +1,57 @@
 import Link from "next/link";
-import { FolderGit2, ArrowRight } from "lucide-react";
+import { ArrowUpRight, Check } from "lucide-react";
+import styles from "@/components/offerings/Offerings.module.css";
 
 export const metadata = {
-  title: "Work & Case Studies | Vyara Amogya Technologies",
-  description: "Outcome-led portfolio featuring brand, web, engineering, and studio projects.",
+  title: "Work & Industry Solutions",
+  description: "Explore Amoghya's industry packages for startups, restaurants, e-commerce, real estate, hospitality and interior design.",
 };
 
-const FILTERS = ["All", "Brand Strategy", "Web Experiences", "Engineering", "Automation", "Studio"];
+// Customer Pricing & Offers, section 4: offered scopes, not case studies.
+const solutions = [
+  { industry: "Startups", title: "Startup Launch", description: "Bring your identity, website and launch marketing together.", scope: ["Business Website", "Logo Design", "Brand Strategy", "Performance Marketing"] },
+  { industry: "Restaurants & Cafes", title: "Restaurant Launch", description: "Connect your menu and brand with the content that brings them to life.", scope: ["Business Website", "Product Photography", "Social Media Reels", "WhatsApp Marketing"] },
+  { industry: "Retail & E-commerce", title: "E-commerce Launch", description: "Connect your storefront, checkout and stock with performance marketing.", scope: ["E-commerce Platform", "Payment Gateway Integration", "Inventory Management", "Performance Marketing"] },
+  { industry: "Real Estate", title: "Real Estate Growth", description: "Pair property content with a website and tools to manage enquiries.", scope: ["Corporate Website", "Drone Photography & Videography", "CRM Development", "Lead Generation Campaigns"] },
+  { industry: "Interior Design", title: "Interior Design Portfolio", description: "Give your spaces a considered home through design, video and storytelling.", scope: ["Portfolio Website", "Professional Videography", "Website UI Design", "Brand Film"] },
+  { industry: "Hospitality", title: "Hospitality Booking", description: "Bring reservations and guest-facing content into one connected scope.", scope: ["Booking & Reservation System", "Professional Videography", "Social Media Marketing", "WhatsApp Marketing"] },
+];
 
 export default function WorkPage() {
   return (
-    <div className="py-16 sm:py-24 max-w-container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mb-12">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-muted border border-border-subtle text-xs font-mono text-content-secondary mb-4">
-          <FolderGit2 className="w-3.5 h-3.5 text-brand-secondary" />
-          <span>Selected Case Studies (PRD §10)</span>
+    <PageExperience variant="work"><div className={styles.page}>
+      <header className={styles.intro}>
+        <p className={styles.eyebrow}>Work / Industry Solutions</p>
+        <h1>What we build.</h1>
+        <p>Brand, technology and creative production, brought together around your business.</p>
+        <Link className={styles.button} href="/contact?source=work">Discuss your project <ArrowUpRight size={18} aria-hidden="true" /></Link>
+      </header>
+      <section className={styles.section} aria-labelledby="solutions-heading">
+        <div className={styles.sectionHeading}>
+          <h2 id="solutions-heading">Solutions by industry</h2>
+          <p>Available service packages, not completed client case studies. Choose a starting point and we will help define the scope.</p>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-content-primary">
-          Our Work
-        </h1>
-        <p className="mt-4 text-lg text-content-secondary leading-relaxed">
-          Measurable commercial impact delivered across startups, growing businesses, and enterprise teams.
-        </p>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2 mb-12">
-        {FILTERS.map((f, i) => (
-          <button
-            key={f}
-            type="button"
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              i === 0
-                ? "bg-brand-primary text-surface-base"
-                : "bg-surface-muted text-content-secondary hover:text-content-primary hover:bg-surface-muted/80"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* Case Studies Grid Placeholder */}
-      <div className="p-12 rounded-2xl bg-surface-elevated border border-border-subtle text-center">
-        <p className="text-sm font-medium text-content-secondary">
-          Case study repository configured. Real client projects will be seeded in Phase 4 per CMS content models.
-        </p>
-        <div className="mt-6">
-          <Link
-            href="/contact?source=work-portfolio"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-primary text-surface-base text-sm font-medium hover:bg-brand-primary/90"
-          >
-            <span>Discuss Your Project</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+        <nav aria-label="Choose an industry" data-industry-nav>
+          {solutions.map((item, index) => <a href={`#industry-${index + 1}`} key={item.title}>{item.industry}<ArrowUpRight size={15} aria-hidden="true" /></a>)}
+        </nav>
+        <div className={styles.grid}>
+          {solutions.map((item, index) => (
+            <article id={`industry-${index + 1}`} className={styles.card} key={item.title}>
+              <div className={styles.cardLabel}><span>{item.industry}</span><span>0{index + 1}</span></div>
+              <h3>{item.title}</h3><p>{item.description}</p>
+              <ul>{item.scope.map(scope => <li key={scope}><Check size={15} aria-hidden="true" />{scope}</li>)}</ul>
+              <Link className={styles.textLink} href={`/contact?source=work&interest=${encodeURIComponent(item.title)}`} aria-label={`Discuss the ${item.title} package`}>Discuss this scope <ArrowUpRight size={17} aria-hidden="true" /></Link>
+            </article>
+          ))}
         </div>
-      </div>
-    </div>
+      </section>
+      <section className={styles.closing} aria-labelledby="work-next">
+        <div><p className={styles.eyebrow}>Your next project</p><h2 id="work-next">A different brief?</h2><p>Explore individual services or build a package around your priorities.</p></div>
+        <div className={styles.actions}><Link className={styles.button} href="/contact">Discuss your project <ArrowUpRight size={18} aria-hidden="true" /></Link><Link className={styles.textLink} href="/services">Explore services <ArrowUpRight size={17} aria-hidden="true" /></Link></div>
+      </section>
+      <ProjectQuestions variant="work" />
+    </div></PageExperience>
   );
 }
+import { PageExperience } from "@/components/offerings/PageExperience";
+import { ProjectQuestions } from "@/components/offerings/ProjectQuestions";

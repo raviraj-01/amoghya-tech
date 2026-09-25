@@ -32,10 +32,10 @@ export function Fallback() {
           Book Studio
         </Link>
         <Link
-          href="/package-builder"
+          href="/contact"
           className="p-3 rounded-lg bg-surface-muted text-content-primary text-xs font-semibold hover:bg-surface-muted/80 transition-all"
         >
-          Build Package
+          Discuss your project
         </Link>
         <Link
           href="/contact?source=closing-discovery"

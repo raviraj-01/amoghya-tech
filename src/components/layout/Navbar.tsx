@@ -2,143 +2,298 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Menu, X, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Menu,
+  X,
+  ArrowUpRight,
+  ChevronDown,
+  Palette,
+  PanelsTopLeft,
+  Smartphone,
+  Database,
+  BrainCircuit,
+  Megaphone,
+  Camera,
+  PenTool,
+  Cloud,
+  Workflow,
+  Compass,
+} from "lucide-react";
+import { serviceRailData } from "@/components/services/service-rail-data";
+import styles from "./Navbar.module.css";
 
-const NAV_ITEMS = [
+const pages = [
   { label: "Home", href: "/" },
   { label: "What We Do", href: "/services" },
   { label: "Work", href: "/work" },
   { label: "Studio", href: "/studio" },
-  { label: "Build Your Package", href: "/package-builder" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
+];
+const groups = [
+  { title: "Brand & Design", indices: [0, 7] },
+  { title: "Web & Products", indices: [1, 2, 3] },
+  { title: "AI & Operations", indices: [4, 8, 9] },
+  { title: "Content & Growth", indices: [5, 6, 10] },
+];
+const icons = [
+  Palette,
+  PanelsTopLeft,
+  Smartphone,
+  Database,
+  BrainCircuit,
+  Megaphone,
+  Camera,
+  PenTool,
+  Cloud,
+  Workflow,
+  Compass,
 ];
 
 export function Navbar() {
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const reducedMotion = useReducedMotion();
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileMenuOpen(false);
-    };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, []);
+  const isHome = pathname === "/";
+  const reduced = useReducedMotion();
+  const header = useRef<HTMLElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const mobileTrigger = useRef<HTMLButtonElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const [homeNavVisible, setHomeNavVisible] = useState(false);
+  const close = () => {
+    setMobileOpen(false);
+    setServicesOpen(false);
+  };
 
-  // Hide global navbar on /admin routes to allow clean admin-specific layout
-  if (pathname.startsWith("/admin")) {
-    return null;
-  }
+  useEffect(() => {
+    setMobileOpen(false);
+    setServicesOpen(false);
+  }, [pathname]);
+  useEffect(() => {
+    if (!isHome) {
+      setHomeNavVisible(true);
+      return;
+    }
+
+    const updateVisibility = () => setHomeNavVisible(window.scrollY > 12);
+    updateVisibility();
+    window.addEventListener("scroll", updateVisibility, { passive: true });
+    return () => window.removeEventListener("scroll", updateVisibility);
+  }, [isHome]);
+  useEffect(() => {
+    const outside = (event: PointerEvent) => {
+      if (!header.current?.contains(event.target as Node)) {
+        setMobileOpen(false);
+        setServicesOpen(false);
+      }
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (mobileOpen) mobileTrigger.current?.focus();
+      else if (servicesOpen) trigger.current?.focus();
+      setServicesOpen(false);
+      setMobileOpen(false);
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [servicesOpen, mobileOpen]);
+
+  if (pathname.startsWith("/admin")) return null;
+  const active = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const menuContent = (
+    <>
+      <div className={styles.groups}>
+        {groups.map((group) => (
+          <div className={styles.group} key={group.title}>
+            <h2>{group.title}</h2>
+            {group.indices.map((index) => {
+              const service = serviceRailData[index];
+              const Icon = icons[index];
+              return (
+                <Link
+                  key={service.slug}
+                  href={`/services/${service.slug}`}
+                  onClick={close}
+                  className={styles.serviceLink}
+                >
+                  <span className={styles.serviceIcon}>
+                    <Icon size={19} strokeWidth={1.5} aria-hidden="true" />
+                  </span>
+                  <span>{service.title}</span>
+                  <ArrowUpRight
+                    className={styles.serviceArrow}
+                    size={14}
+                    aria-hidden="true"
+                  />
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div className={styles.menuFooter}>
+        <span>One team. Every part of your next chapter.</span>
+        <Link href="/services" onClick={close}>
+          Explore all services <ArrowUpRight size={16} aria-hidden="true" />
+        </Link>
+      </div>
+    </>
+  );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border-subtle bg-surface-base/88 backdrop-blur-md transition-colors">
-      <div className="max-w-container mx-auto px-4 sm:px-6 lg:px-8 h-nav flex items-center justify-between">
-        {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-9 w-12 items-center justify-center rounded-full bg-brand-primary text-sm font-black tracking-tight text-surface-base shadow-subtle transition-transform group-hover:scale-105">
-            <span>VAT</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-content-primary text-sm tracking-tight leading-tight">
-              Vyara Amogya
-            </span>
-            <span className="text-[11px] text-content-secondary">
-              Beyond Your Expectations
-            </span>
-          </div>
+    <header
+      ref={header}
+      className={`${styles.header} ${isHome ? styles.homeHeader : ""} ${isHome && homeNavVisible ? styles.homeNavVisible : ""}`}
+      onMouseLeave={() => {
+        if (!header.current?.contains(document.activeElement))
+          setServicesOpen(false);
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node)) close();
+      }}
+    >
+      <div className={styles.shell}>
+        <Link href="/" className={styles.brand} onClick={close}>
+          <span className={styles.mark}>VAT</span>
+          <span className={styles.brandCopy}>
+            <span>{isHome ? "Amoghya" : "Vyara Amogya"}</span>
+            <small>Beyond Your Expectations</small>
+          </span>
         </Link>
-
-        {/* Desktop Nav Links */}
-        <nav className="hidden xl:flex items-center gap-1 whitespace-nowrap">
-          {NAV_ITEMS.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-
-            return (
+        <nav className={styles.desktopNav} aria-label="Main navigation">
+          {pages.map((item) =>
+            item.href === "/services" ? (
+              <div
+                className={styles.serviceNav}
+                key={item.href}
+                onMouseEnter={() => setServicesOpen(true)}
+              >
+                <Link
+                  href={item.href}
+                  className={styles.navLink}
+                  aria-current={active(item.href) ? "page" : undefined}
+                  onClick={close}
+                >
+                  {item.label}
+                </Link>
+                <button
+                  ref={trigger}
+                  className={styles.disclosure}
+                  type="button"
+                  aria-label="Browse services"
+                  aria-expanded={servicesOpen}
+                  aria-controls="desktop-services-menu"
+                  onClick={() => setServicesOpen((value) => !value)}
+                >
+                  <ChevronDown size={15} aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
               <Link
                 key={item.href}
                 href={item.href}
-                className={cn(
-                  "px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-brand-primary text-surface-base font-semibold"
-                    : "text-content-secondary hover:bg-surface-muted hover:text-brand-primary"
-                )}
+                onClick={close}
+                onMouseEnter={() => setServicesOpen(false)}
+                className={styles.navLink}
+                aria-current={active(item.href) ? "page" : undefined}
               >
                 {item.label}
               </Link>
-            );
-          })}
+            ),
+          )}
         </nav>
-
-        {/* Action Button: Start a Project */}
-        <div className="hidden xl:flex items-center gap-3 whitespace-nowrap">
-          <Link
-            href="/contact?source=global-nav"
-            className="inline-flex items-center gap-2 rounded-full bg-brand-primary px-4 py-2 text-sm font-bold text-surface-base shadow-subtle transition-transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <span>Start a Project</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {/* Mobile menu trigger */}
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="xl:hidden p-2 rounded-lg text-content-secondary hover:text-content-primary hover:bg-surface-muted"
-          aria-label="Toggle navigation menu"
-          aria-expanded={mobileMenuOpen}
-          aria-controls="mobile-navigation"
+        <Link
+          href="/contact?source=global-nav"
+          onClick={close}
+          className={`${styles.projectLink} vat-contact-action`}
         >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          <span>Start a Project</span>
+          <ArrowUpRight size={18} aria-hidden="true" />
+        </Link>
+        <button
+          ref={mobileTrigger}
+          type="button"
+          className={styles.menuButton}
+          aria-label="Toggle navigation menu"
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-navigation"
+          onClick={() => {
+            setMobileOpen((value) => !value);
+            setServicesOpen(false);
+          }}
+        >
+          {mobileOpen ? <X size={23} /> : <Menu size={23} />}
+          {isHome && <span>{mobileOpen ? "Close" : "Menu"}</span>}
         </button>
       </div>
-
-      {/* Mobile Dropdown Menu */}
       <AnimatePresence>
-      {mobileMenuOpen && (
-        <motion.div id="mobile-navigation" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reducedMotion ? 0 : 0.18 }} className="xl:hidden max-h-[calc(100dvh-4.5rem)] overflow-y-auto bg-surface-elevated border-b border-border-subtle px-4 pt-3 pb-6 space-y-2 shadow-card">
-          {NAV_ITEMS.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-
-            return (
-              <Link
+        {servicesOpen && !mobileOpen && (
+          <motion.div
+            id="desktop-services-menu"
+            className={styles.megaMenu}
+            initial={{ opacity: 0, y: reduced ? 0 : -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: reduced ? 0 : -6 }}
+            transition={{ duration: reduced ? 0 : 0.2 }}
+          >
+            {menuContent}
+          </motion.div>
+        )}
+        {mobileOpen && (
+          <motion.nav
+            aria-label={isHome ? "Main navigation" : "Mobile navigation"}
+            id="mobile-navigation"
+            className={styles.mobileMenu}
+            initial={{ opacity: 0, y: reduced ? 0 : -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            {pages.map((item) => (
+              <div
                 key={item.href}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  "block rounded-full px-3 py-2 text-base font-medium",
-                  isActive
-                    ? "bg-brand-primary text-surface-base font-semibold"
-                    : "text-content-secondary hover:bg-surface-muted hover:text-brand-primary"
-                )}
+                className={styles.mobileRow}
+                onMouseEnter={() => {
+                  if (item.href === "/services") setServicesOpen(true);
+                }}
               >
-                {item.label}
-              </Link>
-            );
-          })}
-          <div className="pt-3">
+                <Link
+                  href={item.href}
+                  onClick={close}
+                  aria-current={active(item.href) ? "page" : undefined}
+                >
+                  {item.label}
+                </Link>
+                {item.href === "/services" && (
+                  <button
+                    type="button"
+                    aria-label="Browse services"
+                    aria-expanded={servicesOpen}
+                    aria-controls="mobile-services-menu"
+                    onClick={() => setServicesOpen((value) => !value)}
+                  >
+                    <ChevronDown size={18} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {servicesOpen && <div id="mobile-services-menu">{menuContent}</div>}
             <Link
+              className={`${styles.mobileProject} vat-contact-action`}
               href="/contact?source=mobile-nav"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-primary py-2.5 text-sm font-bold text-surface-base shadow-subtle"
+              onClick={close}
             >
-              <span>Start a Project</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>Let&apos;s talk</span>
+              <ArrowUpRight size={18} />
             </Link>
-          </div>
-        </motion.div>
-      )}
+          </motion.nav>
+        )}
       </AnimatePresence>
     </header>
   );

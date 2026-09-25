@@ -11,7 +11,7 @@ export function Fallback() {
       <div className="relative w-48 h-48 sm:w-56 sm:h-56 mx-auto">
         <Image
           src="/image/AMO-8.png"
-          alt="Build Your Package"
+          alt="Discuss Your Project"
           fill
           sizes="(min-width: 640px) 224px, 192px"
           className="object-contain drop-shadow-xl"
@@ -29,10 +29,10 @@ export function Fallback() {
 
       <div className="pt-2">
         <Link
-          href="/package-builder"
+          href="/contact"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-primary text-surface-base text-xs font-semibold hover:bg-brand-primary/90 transition-all"
         >
-          <span>Configure Package</span>
+          <span>Discuss your project</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>

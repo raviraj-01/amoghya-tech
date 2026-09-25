@@ -1,4 +1,5 @@
 "use client";
+import { SCROLL_SCRUB, SCENE_FRAME_COUNT, scrollDistanceForFrames } from "@/lib/scroll-animation";
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
@@ -12,8 +13,7 @@ if (typeof window !== "undefined") {
 }
 
 const TOTAL_FRAMES = 120;
-const SCROLL_PX_PER_FRAME = 8; // ~960px of pinned scroll distance
-const PIN_DISTANCE = TOTAL_FRAMES * SCROLL_PX_PER_FRAME;
+const PIN_DISTANCE = scrollDistanceForFrames(TOTAL_FRAMES);
 
 function getFrameUrl(index: number): string {
   const paddedIndex = String(index).padStart(3, "0");
@@ -224,10 +224,10 @@ export function ScrollFrameSequence() {
           pin: pinTargetRef.current,
           start: "top top",
           end: `+=${PIN_DISTANCE}`,
-          scrub: true,
+          scrub: SCROLL_SCRUB,
           anticipatePin: 1,
           invalidateOnRefresh: true,
-          onUpdate: (self) => {
+          onUpdate: (self: ScrollTrigger) => {
             const progress = self.progress;
             const targetFrame = Math.min(
               TOTAL_FRAMES - 1,
@@ -381,13 +381,13 @@ export function ScrollFrameSequence() {
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
               <Link
                 href="/services"
-                className="px-6 py-3 rounded-lg bg-surface-muted text-content-primary font-medium hover:bg-surface-muted/80 border border-border-subtle transition-all text-sm font-semibold"
+                className="px-6 py-3 rounded-lg bg-surface-muted text-content-primary hover:bg-surface-muted/80 border border-border-subtle transition-all text-sm font-semibold"
               >
                 See what AMO can do
               </Link>
               <Link
                 href="/contact?source=scene-01"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-brand-primary text-surface-base font-medium hover:bg-brand-primary/90 shadow-card transition-all text-sm font-semibold"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-brand-primary text-surface-base hover:bg-brand-primary/90 shadow-card transition-all text-sm font-semibold"
               >
                 <span>Start a project</span>
                 <ArrowRight className="w-4 h-4" />

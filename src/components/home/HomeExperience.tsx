@@ -1,14 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Check, Package, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
-import { motion, useMotionValue, useReducedMotion } from "framer-motion";
+import { SCROLL_SCRUB, scrollDistanceForFrames } from "@/lib/scroll-animation";
+import {
+  scrollWithLenis,
+  lockSmoothScroll,
+} from "@/components/layout/ScrollSystem";
+import { mediaUrl } from "@/lib/media-url";
+import { PricingPreview } from "./LandingConversion";
+import { ServicesMarquee } from "./ServicesMarquee";
+import { currentScrollKey, readScrollPosition } from "@/lib/scroll-position";
 import { FrameCache } from "@/lib/frame-cache";
 import { introHandoffTransform } from "@/lib/intro-handoff";
+import { normalizeFrameMatte } from "@/lib/frame-matte";
 import { useExperienceStore } from "@/three/quality-controller";
+import { ServicesSection } from "@/components/services/ServicesSection";
+import thoughtStyles from "./AmoThought.module.css";
+import frameManifest from "@/lib/frame-manifest.json";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -16,8 +34,7 @@ if (typeof window !== "undefined") {
 
 type FrameFolder = {
   id: number;
-  count: number;
-  missing?: number[];
+  frames: number[];
 };
 
 type NarrativeSection = {
@@ -35,23 +52,40 @@ type Point = {
   y: number;
 };
 
-const FRAME_FOLDERS: FrameFolder[] = [
-  { id: 0, count: 240 },
-  { id: 1, count: 85 },
-  { id: 2, count: 105 },
-  { id: 3, count: 220 },
-  { id: 4, count: 205, missing: [161, 162, 163, 164, 165] },
-  { id: 5, count: 240 },
-  { id: 6, count: 240 },
-  { id: 7, count: 240 },
-];
+const FRAME_FOLDERS: FrameFolder[] = frameManifest;
 
 const AUTOPLAY_FPS = 30;
-const SCROLL_PX_PER_SECTION = 1120;
 const CROSSFADE_PROGRESS = 0.055;
+const CONTENT_ENTER_START = 0.3;
+const CONTENT_ENTER_RANGE = 0.18;
+const CONTENT_EXIT_RANGE = 0.16;
 const MOBILE_BREAKPOINT = 768;
 const FRAME_RENDER_SCALE = 0.58;
 const FRAME_BACKGROUND = "#ededeb";
+
+// Source clips share an identical canvas ratio but not an identical AMO scale.
+// These uniform factors align AMO's apparent height without distorting any frame.
+const FRAME_CLIP_SCALE: Record<number, number> = {
+  0: 1,
+  1: 1, // Must remain unscaled for the exact intro handoff.
+  2: 1.064,
+  3: 0.976,
+  4: 0.965,
+  5: 0.988,
+  6: 1.137,
+  7: 1.078,
+};
+
+const AMO_THOUGHTS = [
+  "",
+  "Your next idea starts here.",
+  "One team connects it all.",
+  "Let your story take shape.",
+  "Less busywork. More possibility.",
+  "Start with the outcome.",
+  "Built around your business.",
+  "What shall we create together?",
+];
 
 const NARRATIVE_SECTIONS: NarrativeSection[] = [
   {
@@ -93,15 +127,15 @@ const NARRATIVE_SECTIONS: NarrativeSection[] = [
     title: "Good ideas need systems that do the boring work.",
     copy: "CRM, dashboards, portals, AI assistants, and workflow automation help your team respond faster and lose fewer leads.",
     bullets: ["CRM", "Dashboards", "AI assistants", "Automation"],
-    primary: { label: "Build a system", href: "/package-builder" },
+    primary: { label: "Build a system", href: "/contact?source=systems" },
   },
   {
     folder: 5,
     eyebrow: "Services Deep Dive",
-    title: "Pick the outcome, then shape the package.",
-    copy: "Starter works for fast launches. Growth fits most businesses that need stronger design, integrations, and campaigns. Enterprise covers complex systems and multi-location operations.",
-    bullets: ["Starter", "Growth", "Enterprise"],
-    primary: { label: "See package options", href: "#pricing" },
+    title: "Start with what your business needs.",
+    copy: "Bring your brand, technology and creative production together around a clear outcome.",
+    bullets: ["Design", "Technology", "Growth"],
+    primary: { label: "Explore outcomes", href: "#pricing" },
   },
   {
     folder: 6,
@@ -113,41 +147,11 @@ const NARRATIVE_SECTIONS: NarrativeSection[] = [
   },
   {
     folder: 7,
-    eyebrow: "Build Your Package",
-    title: "Scope your custom project.",
-    copy: "Combine only what you need: brand, website, content, AI, automation, campaigns, or studio production. The goal is a clean proposal, not a crowded menu.",
-    primary: { label: "Build Your Package", href: "/package-builder" },
+    eyebrow: "Your next chapter",
+    title: "Let us talk about your next project.",
+    copy: "Bring your idea, your challenges and where you want to go. We will help define the next step.",
+    primary: { label: "Start a conversation", href: "/contact?source=home" },
   },
-];
-
-const SERVICE_TEASERS = [
-  ["Brand + Website Launch", "Identity, landing pages, business sites, and conversion basics for a credible market entry.", "from ₹10K"],
-  ["AI + Automation Systems", "AI assistants, CRM automation, lead management, dashboards, and workflow cleanup.", "from ₹19K"],
-  ["Content + Campaign Growth", "Product shoots, reels, ads, SEO, WhatsApp, and monthly campaign reporting.", "from ₹7K/mo"],
-  ["Apps + Portals", "Customer portals, booking systems, mobile apps, commerce flows, and internal tools.", "from ₹30K"],
-  ["Studio Production", "Podcast recording, brand films, product shoots, reels, and campaign-ready video assets.", "from ₹2K"],
-  ["Business Consulting", "Roadmaps, audits, product strategy, growth planning, and digital transformation direction.", "from ₹19K"],
-];
-
-const PRICING_TIERS = [
-  ["Starter", "Lean scope, fast turnaround."],
-  ["Growth ★ Most Popular", "Most clients' sweet spot."],
-  ["Enterprise", "Complex integrations, compliance, and scale."],
-];
-
-const FREE_BONUSES = [
-  "Free strategy consultation",
-  "Free audit report",
-  "Free WhatsApp catalogue setup",
-  "Free Google Business Profile setup",
-];
-
-const VALUE_PROPS = [
-  "One team for brand, tech, AI, marketing, and content",
-  "Built-in AI and automation advantage",
-  "Clear scopes before work starts",
-  "Fast delivery with direct communication",
-  "Bengaluru-based and easy to reach",
 ];
 
 function frameUrl(folder: number, frame: number) {
@@ -160,19 +164,20 @@ function pngUrl(url: string) {
 
 function lastFrameUrl(folder: FrameFolder) {
   const frames = frameNumbers(folder);
-  return frameUrl(folder.id, frames[frames.length - 1] ?? folder.count);
+  return frameUrl(folder.id, frames[frames.length - 1]);
 }
 
 function frameNumbers(folder: FrameFolder) {
-  const missing = new Set(folder.missing ?? []);
-  return Array.from({ length: folder.count }, (_, index) => index + 1).filter((frame) => !missing.has(frame));
+  return folder.frames;
 }
 
 function availableFrameCount(folder: FrameFolder) {
-  return folder.count - (folder.missing?.length ?? 0);
+  return folder.frames.length;
 }
 
-const FRAME_URLS = FRAME_FOLDERS.map(folder => frameNumbers(folder).map(frame => frameUrl(folder.id, frame)));
+const FRAME_URLS = FRAME_FOLDERS.map((folder) =>
+  frameNumbers(folder).map((frame) => frameUrl(folder.id, frame)),
+);
 
 function bezierPoint(t: number, p0: Point, p1: Point, p2: Point) {
   const x = (1 - t) ** 2 * p0.x + 2 * (1 - t) * t * p1.x + t ** 2 * p2.x;
@@ -185,11 +190,20 @@ function easeInOutCubic(t: number) {
 }
 
 function getMotionPoint(sectionIndex: number, progress: number) {
+  // The intro stays centered; the first scroll clip leaves that same origin.
+  if (sectionIndex === 0) return { x: 0, y: 0 };
   const t = easeInOutCubic(progress);
   const leftToRight = sectionIndex % 2 === 0;
-  const viewportWidth = typeof window === "undefined" ? 1440 : window.innerWidth;
-  const viewportHeight = typeof window === "undefined" ? 900 : window.innerHeight;
-  const startX = leftToRight ? -viewportWidth * 0.12 : viewportWidth * 0.12;
+  const viewportWidth =
+    typeof window === "undefined" ? 1440 : window.innerWidth;
+  const viewportHeight =
+    typeof window === "undefined" ? 900 : window.innerHeight;
+  const startX =
+    sectionIndex === 1
+      ? 0
+      : leftToRight
+        ? -viewportWidth * 0.12
+        : viewportWidth * 0.12;
   const endX = leftToRight ? viewportWidth * 0.12 : -viewportWidth * 0.12;
   const baseY = 0;
   const arcHeight = Math.min(110, viewportHeight * 0.12);
@@ -205,39 +219,45 @@ export function HomeExperience() {
   const pinRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const thoughtRef = useRef<HTMLDivElement>(null);
   const imageLayerRef = useRef<HTMLCanvasElement | null>(null);
   const cacheRef = useRef<FrameCache | null>(null);
   const lastRenderRef = useRef("");
-  const posterRef = useRef<HTMLImageElement>(null);
+  const posterRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const lastAutoplayTickRef = useRef(0);
   const currentFrameRef = useRef({ folder: 0, frame: 1 });
+  const preloadPositionRef = useRef({ folder: 0, index: 0, direction: 1 });
+  const returnPositionRef = useRef<number | null>(null);
 
   const enable3D = useExperienceStore((s) => s.enable3D);
   const [isStatic, setIsStatic] = useState<boolean | null>(null);
   const [autoplayDone, setAutoplayDone] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
-  const characterX = useMotionValue(0);
-  const characterY = useMotionValue(0);
-  const contentOpacity = useMotionValue(0);
-  const contentX = useMotionValue(0);
+  const characterRef = useRef<HTMLDivElement>(null);
+  const contentMotionRef = useRef<HTMLDivElement>(null);
   const setMotionPoint = useCallback((point: Point) => {
-    characterX.set(point.x);
-    characterY.set(point.y);
-  }, [characterX, characterY]);
+    if (characterRef.current)
+      gsap.set(characterRef.current, { x: point.x, y: point.y });
+  }, []);
+  const scrollDistance = scrollDistanceForFrames(
+    FRAME_FOLDERS.slice(1).reduce(
+      (sum, folder) => sum + availableFrameCount(folder),
+      0,
+    ),
+  );
 
-  const scrollSections = FRAME_FOLDERS.length - 1;
-
-  const scrollDistance = scrollSections * SCROLL_PX_PER_SECTION;
+  useLayoutEffect(() => {
+    const saved = readScrollPosition(currentScrollKey());
+    if (!saved?.homeReady) return;
+    returnPositionRef.current = saved.y;
+    setAutoplayDone(true);
+  }, []);
 
   useLayoutEffect(() => {
     if (isStatic !== false || window.location.hash) return;
 
-    if ("scrollRestoration" in window.history) {
-      window.history.scrollRestoration = "manual";
-    }
-
-    window.scrollTo(0, 0);
+    if (returnPositionRef.current === null) scrollWithLenis(0);
     ScrollTrigger.clearScrollMemory?.();
   }, [isStatic]);
 
@@ -257,86 +277,191 @@ export function HomeExperience() {
     }
   }, []);
 
-  const drawImage = useCallback((ctx: CanvasRenderingContext2D, img: HTMLImageElement, alpha = 1, handoffProgress?: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas || !img.complete || !img.naturalWidth) return false;
+  const drawImage = useCallback(
+    (
+      ctx: CanvasRenderingContext2D,
+      img: HTMLImageElement | HTMLVideoElement,
+      alpha = 1,
+      handoffProgress?: number,
+      clipScale = 1,
+      introPresence = 0,
+    ) => {
+      const canvas = canvasRef.current;
+      const isVideo = img instanceof HTMLVideoElement;
+      const width = isVideo ? img.videoWidth : img.naturalWidth;
+      const height = isVideo ? img.videoHeight : img.naturalHeight;
+      if (
+        !canvas ||
+        !width ||
+        !height ||
+        (isVideo ? img.readyState < 2 : !img.complete)
+      )
+        return false;
 
-    const cw = canvas.width;
-    const ch = canvas.height;
-    const ratio = Math.max(cw / img.naturalWidth, ch / img.naturalHeight) * FRAME_RENDER_SCALE;
-    const drawW = img.naturalWidth * ratio;
-    const drawH = img.naturalHeight * ratio;
-    const x = (cw - drawW) / 2;
-    const y = (ch - drawH) / 2;
+      const cw = canvas.width;
+      const ch = canvas.height;
+      const preferredRatio =
+        Math.max(cw / width, ch / height) * FRAME_RENDER_SCALE;
+      // Use one uniform fit limit for both intro and scroll clips, including
+      // the largest clip correction, so wide viewports cannot crop AMO.
+      const regularRatio = Math.min(
+        preferredRatio,
+        (ch * 0.78) / (height * 1.137),
+      );
+      // The canvas includes overscan for AMO's path; fit the intro to the actual viewport.
+      const viewportWidth = pinRef.current?.clientWidth ?? cw;
+      const viewportHeight = pinRef.current?.clientHeight ?? ch;
+      const pixelRatio = cw / (canvas.clientWidth || cw);
+      const introRatio =
+        Math.min(viewportWidth / width, viewportHeight / height) * pixelRatio;
+      const ratio = regularRatio + (introRatio - regularRatio) * introPresence;
+      const drawW = width * ratio;
+      const drawH = height * ratio;
+      const x = (cw - drawW) / 2;
+      const y = (ch - drawH) / 2;
 
-    const layer = imageLayerRef.current ?? document.createElement("canvas");
-    imageLayerRef.current = layer;
-    if (layer.width !== Math.ceil(drawW) || layer.height !== Math.ceil(drawH)) {
-      layer.width = Math.ceil(drawW);
-      layer.height = Math.ceil(drawH);
-    }
-    const layerCtx = layer.getContext("2d");
-    if (!layerCtx) return false;
-    layerCtx.clearRect(0, 0, layer.width, layer.height);
-    layerCtx.drawImage(img, 0, 0, drawW, drawH);
+      const layer = imageLayerRef.current ?? document.createElement("canvas");
+      imageLayerRef.current = layer;
+      if (
+        layer.width !== Math.ceil(drawW) ||
+        layer.height !== Math.ceil(drawH)
+      ) {
+        layer.width = Math.ceil(drawW);
+        layer.height = Math.ceil(drawH);
+      }
+      const layerCtx = layer.getContext("2d");
+      if (!layerCtx) return false;
+      layerCtx.clearRect(0, 0, layer.width, layer.height);
+      layerCtx.drawImage(
+        handoffProgress === undefined || isVideo
+          ? img
+          : normalizeFrameMatte(img),
+        0,
+        0,
+        drawW,
+        drawH,
+      );
 
-    const feather = drawW * 0.28;
-    const verticalFeather = drawH * 0.05;
-    const edges = [
-      { x: 0, y: 0, w: feather, h: drawH, stops: [[0, 1], [1, 0]], axis: "x" },
-      { x: drawW - feather, y: 0, w: feather, h: drawH, stops: [[0, 0], [1, 1]], axis: "x" },
-      { x: 0, y: 0, w: drawW, h: verticalFeather, stops: [[0, 1], [1, 0]], axis: "y" },
-      { x: 0, y: drawH - verticalFeather, w: drawW, h: verticalFeather, stops: [[0, 0], [1, 1]], axis: "y" },
-    ] as const;
+      const feather =
+        drawW * (0.28 * (1 - introPresence) + 0.015 * introPresence);
+      const verticalFeather =
+        drawH * (0.05 * (1 - introPresence) + 0.015 * introPresence);
+      const edges = [
+        {
+          x: 0,
+          y: 0,
+          w: feather,
+          h: drawH,
+          stops: [
+            [0, 1],
+            [1, 0],
+          ],
+          axis: "x",
+        },
+        {
+          x: drawW - feather,
+          y: 0,
+          w: feather,
+          h: drawH,
+          stops: [
+            [0, 0],
+            [1, 1],
+          ],
+          axis: "x",
+        },
+        {
+          x: 0,
+          y: 0,
+          w: drawW,
+          h: verticalFeather,
+          stops: [
+            [0, 1],
+            [1, 0],
+          ],
+          axis: "y",
+        },
+        {
+          x: 0,
+          y: drawH - verticalFeather,
+          w: drawW,
+          h: verticalFeather,
+          stops: [
+            [0, 0],
+            [1, 1],
+          ],
+          axis: "y",
+        },
+      ] as const;
 
-    // Feather the image alpha before compositing so a rotated frame cannot
-    // paint a rectangular background over the outgoing lettering.
-    layerCtx.save();
-    layerCtx.globalCompositeOperation = "destination-out";
-    edges.forEach((edge) => {
-      const gradient =
-        edge.axis === "x"
-          ? layerCtx.createLinearGradient(edge.x, 0, edge.x + edge.w, 0)
-          : layerCtx.createLinearGradient(0, edge.y, 0, edge.y + edge.h);
-      edge.stops.forEach(([position, opacity]) => {
-        gradient.addColorStop(position, `rgba(0, 0, 0, ${opacity})`);
+      // Feather the image alpha before compositing so a rotated frame cannot
+      // paint a rectangular background over the outgoing lettering.
+      layerCtx.save();
+      layerCtx.globalCompositeOperation = "destination-out";
+      edges.forEach((edge) => {
+        const gradient =
+          edge.axis === "x"
+            ? layerCtx.createLinearGradient(edge.x, 0, edge.x + edge.w, 0)
+            : layerCtx.createLinearGradient(0, edge.y, 0, edge.y + edge.h);
+        edge.stops.forEach(([position, opacity]) => {
+          gradient.addColorStop(position, `rgba(0, 0, 0, ${opacity})`);
+        });
+        layerCtx.fillStyle = gradient;
+        layerCtx.fillRect(edge.x, edge.y, edge.w, edge.h);
       });
-      layerCtx.fillStyle = gradient;
-      layerCtx.fillRect(edge.x, edge.y, edge.w, edge.h);
-    });
-    layerCtx.restore();
-    ctx.save();
-    if (handoffProgress !== undefined) {
-      const { a, b, tx, ty } = introHandoffTransform(handoffProgress);
-      ctx.translate(x, y);
-      ctx.transform(a, b, -b, a, tx * drawW / 1920, ty * drawH / 1080);
-      ctx.translate(-x, -y);
-    }
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(layer, x, y, drawW, drawH);
-    ctx.restore();
+      layerCtx.restore();
+      ctx.save();
+      ctx.translate(cw / 2, ch / 2);
+      ctx.scale(clipScale, clipScale);
+      ctx.translate(-cw / 2, -ch / 2);
+      if (handoffProgress !== undefined) {
+        const { a, b, tx, ty } = introHandoffTransform(handoffProgress);
+        ctx.translate(x, y);
+        ctx.transform(a, b, -b, a, (tx * drawW) / 1920, (ty * drawH) / 1080);
+        ctx.translate(-x, -y);
+      }
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(layer, x, y, drawW, drawH);
+      ctx.restore();
 
-    return true;
-  }, []);
+      return true;
+    },
+    [],
+  );
 
   const preloadFrames = useCallback((folderId: number, frameIndex: number) => {
     const urls = FRAME_URLS[folderId];
     if (!urls) return;
-    const index = Math.min(urls.length - 1, Math.max(0, Math.floor(frameIndex)));
+    const index = Math.min(
+      urls.length - 1,
+      Math.max(0, Math.floor(frameIndex)),
+    );
+    const last = preloadPositionRef.current;
+    const delta =
+      folderId === last.folder ? index - last.index : folderId - last.folder;
+    const direction = delta === 0 ? last.direction : Math.sign(delta);
+    preloadPositionRef.current = { folder: folderId, index, direction };
     const wanted = [urls[index]];
     const previous = FRAME_URLS[folderId - 1];
-    if (previous && index / (urls.length - 1) <= CROSSFADE_PROGRESS) wanted.push(previous[previous.length - 1]);
-    for (let offset = 1; offset <= 24; offset++) {
-      if (urls[index + offset]) wanted.push(urls[index + offset]);
-      if (folderId > 0 && offset <= 12 && urls[index - offset]) wanted.push(urls[index - offset]);
+    if (previous && index / (urls.length - 1) <= CROSSFADE_PROGRESS)
+      wanted.push(previous[previous.length - 1]);
+    for (let offset = 1; offset <= 28; offset++) {
+      if (urls[index + offset * direction])
+        wanted.push(urls[index + offset * direction]);
+      if (folderId > 0 && offset <= 8 && urls[index - offset * direction])
+        wanted.push(urls[index - offset * direction]);
     }
     // Keep the next scene's opening ready, including for a fast wheel or anchor jump.
-    wanted.push(...(FRAME_URLS[folderId + 1]?.slice(0, 6) ?? []));
+    if (direction > 0 ? index >= urls.length - 28 : index < 28)
+      wanted.push(
+        ...(direction > 0
+          ? (FRAME_URLS[folderId + 1]?.slice(0, 6) ?? [])
+          : (previous?.slice(-6).reverse() ?? [])),
+      );
     cacheRef.current?.request(wanted);
   }, []);
 
   const renderFrame = useCallback(
-    (folderId: number, frameFloat: number) => {
+    (folderId: number, frameFloat: number, allowNearby = false) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -347,75 +472,139 @@ export function HomeExperience() {
       const urls = FRAME_URLS[folderId];
       if (!folder || !urls) return;
 
-      const frameIndex = Math.min(urls.length - 1, Math.max(0, Math.floor(frameFloat)));
+      const frameIndex = Math.min(
+        urls.length - 1,
+        Math.max(0, Math.floor(frameFloat)),
+      );
       preloadFrames(folderId, frameIndex);
-      const current = cacheRef.current?.get(urls[frameIndex]);
-      if (cacheRef.current?.failed(urls[frameIndex])) {
-        setIsStatic(true);
-        return;
+      let displayedIndex = frameIndex;
+      let current = cacheRef.current?.get(urls[frameIndex]);
+      // A nearby decoded pose bridges brief download delays, never another scene.
+      if (!current && allowNearby && frameFloat > 0) {
+        const last = currentFrameRef.current;
+        const sameScene = last.folder === folderId;
+        const lastIndex = last.frame - 1;
+        for (let offset = 1; offset < urls.length && !current; offset++) {
+          for (const candidate of [frameIndex - offset, frameIndex + offset]) {
+            if (candidate < 0 || candidate >= urls.length) continue;
+            if (
+              sameScene &&
+              (candidate < Math.min(lastIndex, frameIndex) ||
+                candidate > Math.max(lastIndex, frameIndex))
+            )
+              continue;
+            const ready = cacheRef.current?.get(urls[candidate]);
+            if (ready) {
+              current = ready;
+              displayedIndex = candidate;
+              break;
+            }
+          }
+        }
       }
       if (!current || !current.complete || !current.naturalWidth) return;
 
       const previousUrls = FRAME_URLS[folderId - 1];
-      const previous = previousUrls ? cacheRef.current?.get(previousUrls[previousUrls.length - 1]) : undefined;
+      const previous = previousUrls
+        ? cacheRef.current?.get(previousUrls[previousUrls.length - 1])
+        : undefined;
       const sectionProgress = frameFloat / (urls.length - 1);
-      if (previousUrls && sectionProgress < CROSSFADE_PROGRESS && cacheRef.current?.failed(previousUrls[previousUrls.length - 1])) {
-        setIsStatic(true);
+      if (folderId === 1 && sectionProgress < CROSSFADE_PROGRESS && !previous)
         return;
-      }
-      if (folderId > 0 && sectionProgress < CROSSFADE_PROGRESS && !previous) return;
-      const blend = previous?.complete && previous.naturalWidth
-        ? Math.min(1, sectionProgress / CROSSFADE_PROGRESS)
-        : 1;
+      const blend =
+        previous?.complete && previous.naturalWidth
+          ? Math.min(1, sectionProgress / CROSSFADE_PROGRESS)
+          : 1;
       const handoffProgress = folderId === 1 ? sectionProgress : undefined;
-      const renderKey = `${folderId}:${frameIndex}:${blend.toFixed(3)}:${handoffProgress?.toFixed(5)}:${canvas.width}:${canvas.height}`;
+      const introPresence =
+        folderId === 0
+          ? 1
+          : folderId === 1
+            ? 1 - easeInOutCubic(Math.min(1, sectionProgress / 0.45))
+            : 0;
+      const renderKey = `${folderId}:${displayedIndex}:${blend.toFixed(3)}:${handoffProgress === undefined ? "" : Math.min(0.45, handoffProgress).toFixed(5)}:${canvas.width}:${canvas.height}`;
       if (lastRenderRef.current === renderKey) return true;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = FRAME_BACKGROUND;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       if (folderId > 0 && blend < 1) {
-        if (previous) drawImage(ctx, previous, folderId === 1 ? 1 - blend : 1);
-        drawImage(ctx, current, blend, handoffProgress);
+        if (previous)
+          drawImage(
+            ctx,
+            previous,
+            folderId === 1 ? 1 - blend : 1,
+            undefined,
+            FRAME_CLIP_SCALE[folderId - 1] ?? 1,
+            introPresence,
+          );
+        drawImage(
+          ctx,
+          current,
+          blend,
+          handoffProgress,
+          FRAME_CLIP_SCALE[folderId] ?? 1,
+          introPresence,
+        );
       } else {
-        drawImage(ctx, current, 1, handoffProgress);
+        drawImage(
+          ctx,
+          current,
+          1,
+          handoffProgress,
+          FRAME_CLIP_SCALE[folderId] ?? 1,
+          introPresence,
+        );
       }
 
-      currentFrameRef.current = { folder: folderId, frame: frameIndex + 1 };
+      currentFrameRef.current = { folder: folderId, frame: displayedIndex + 1 };
+      canvas.dataset.frame = `${folderId}:${displayedIndex}`;
       lastRenderRef.current = renderKey;
       if (posterRef.current) posterRef.current.style.display = "none";
       return true;
     },
-    [drawImage, preloadFrames]
+    [drawImage, preloadFrames],
   );
 
-  const frameFromScrollProgress = useCallback(
-    (progress: number) => {
-      const sectionFolders = FRAME_FOLDERS.slice(1);
-      const normalizedProgress = Math.min(1, Math.max(0, progress));
-      const sectionTarget = normalizedProgress * sectionFolders.length;
-      const sectionSlot = Math.min(sectionFolders.length - 1, Math.floor(sectionTarget));
-      const sectionProgress = sectionSlot === sectionFolders.length - 1 && normalizedProgress === 1
-        ? 1
-        : sectionTarget - sectionSlot;
-      const folder = sectionFolders[sectionSlot] ?? sectionFolders[0];
-      const count = availableFrameCount(folder);
+  const frameFromScrollProgress = useCallback((progress: number) => {
+    const sectionFolders = FRAME_FOLDERS.slice(1);
+    const normalizedProgress = Math.min(1, Math.max(0, progress));
+    const total = sectionFolders.reduce(
+      (sum, folder) => sum + availableFrameCount(folder),
+      0,
+    );
+    const target = normalizedProgress * total;
+    let offset = 0;
+    const folder =
+      sectionFolders.find((folder) => {
+        const count = availableFrameCount(folder);
+        if (target < offset + count) return true;
+        offset += count;
+        return false;
+      }) ?? sectionFolders[sectionFolders.length - 1];
+    const count = availableFrameCount(folder);
+    const sectionProgress =
+      normalizedProgress === 1 ? 1 : Math.min(1, (target - offset) / count);
 
-      return {
-        sectionIndex: folder.id,
-        folderId: folder.id,
-        localFrame: sectionProgress * Math.max(1, count - 1),
-        sectionProgress,
-      };
-    },
-    []
-  );
+    return {
+      sectionIndex: folder.id,
+      folderId: folder.id,
+      localFrame: sectionProgress * Math.max(1, count - 1),
+      sectionProgress,
+    };
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    const sync = () => setIsStatic(media.matches || reduce.matches || !enable3D || Boolean(window.location.hash));
+    const sync = () =>
+      setIsStatic(
+        media.matches ||
+          reduce.matches ||
+          !enable3D ||
+          Boolean(window.location.hash),
+      );
     sync();
 
     media.addEventListener("change", sync);
@@ -429,24 +618,67 @@ export function HomeExperience() {
 
   useEffect(() => {
     if (isStatic !== false) return;
-    const cache = new FrameCache();
+    const cache = new FrameCache(mediaUrl);
     cacheRef.current = cache;
     resizeCanvas();
     lastRenderRef.current = "";
-    preloadFrames(0, 0);
-    return () => { cache.dispose(); cacheRef.current = null; };
-  }, [isStatic, preloadFrames, resizeCanvas]);
+    const returning = returnPositionRef.current;
+    if (returning !== null) {
+      const frame = frameFromScrollProgress(returning / scrollDistance);
+      preloadFrames(frame.folderId, frame.localFrame);
+    } else
+      cache.request([FRAME_URLS[0].at(-1)!, ...FRAME_URLS[1].slice(0, 29)]);
+    return () => {
+      cache.dispose();
+      cacheRef.current = null;
+    };
+  }, [
+    isStatic,
+    preloadFrames,
+    resizeCanvas,
+    frameFromScrollProgress,
+    scrollDistance,
+  ]);
 
   useEffect(() => {
     if (isStatic !== false || autoplayDone) return;
 
     const bodyOverflow = document.body.style.overflow;
     const htmlOverflow = document.documentElement.style.overflow;
+    const unlockScroll = lockSmoothScroll();
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
+    setMotionPoint(getMotionPoint(0, 0));
 
     let nextFrame = 0;
     let lastSuccess = performance.now();
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.src =
+      "https://res.cloudinary.com/dtgvkkgbk/video/upload/v1790320347/video_spwnbl.mp4";
+    let videoFailed = false;
+    let videoEnded = false;
+    let lastVideoTime = -1;
+    video.onended = () => {
+      videoEnded = true;
+      lastSuccess = performance.now();
+    };
+    video.onerror = () => {
+      videoFailed = true;
+      lastSuccess = performance.now();
+    };
+    video.play().catch(() => {
+      videoFailed = true;
+      lastSuccess = performance.now();
+    });
+    const openingBatch = [FRAME_URLS[0].at(-1)!, ...FRAME_URLS[1].slice(0, 12)];
+    cacheRef.current?.request([
+      FRAME_URLS[0].at(-1)!,
+      ...FRAME_URLS[1].slice(0, 29),
+    ]);
     lastAutoplayTickRef.current = 0;
     const tick = (time: number) => {
       const introFrameCount = availableFrameCount(FRAME_FOLDERS[0]);
@@ -457,22 +689,67 @@ export function HomeExperience() {
         return;
       }
       if (time - lastSuccess > 12000) {
-        setIsStatic(true);
-        return;
+        if (!videoFailed) {
+          videoFailed = true;
+          video.pause();
+          lastSuccess = time;
+        } else {
+          setIsStatic(true);
+          return;
+        }
       }
-      if (nextFrame < introFrameCount && time - lastAutoplayTickRef.current >= 1000 / AUTOPLAY_FPS && renderFrame(0, nextFrame)) {
+      if (!videoFailed) {
+        const canvas = canvasRef.current;
+        const context = canvas?.getContext("2d");
+        if (
+          !videoEnded &&
+          canvas &&
+          context &&
+          video.readyState >= 2 &&
+          video.currentTime !== lastVideoTime
+        ) {
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          context.fillStyle = FRAME_BACKGROUND;
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          drawImage(context, video, 1, undefined, 1, 1);
+          lastVideoTime = video.currentTime;
+          lastSuccess = time;
+          if (posterRef.current) posterRef.current.style.display = "none";
+        }
+        if (videoEnded) nextFrame = introFrameCount;
+      }
+      if (
+        videoFailed &&
+        nextFrame < introFrameCount &&
+        time - lastAutoplayTickRef.current >= 1000 / AUTOPLAY_FPS &&
+        renderFrame(0, nextFrame)
+      ) {
         nextFrame += 1;
         lastSuccess = time;
-        lastAutoplayTickRef.current = time - Math.min((time - lastAutoplayTickRef.current) % (1000 / AUTOPLAY_FPS), 1000 / AUTOPLAY_FPS);
-        setMotionPoint(getMotionPoint(0, nextFrame / introFrameCount));
+        lastAutoplayTickRef.current =
+          time -
+          Math.min(
+            (time - lastAutoplayTickRef.current) % (1000 / AUTOPLAY_FPS),
+            1000 / AUTOPLAY_FPS,
+          );
       }
 
-      if (nextFrame >= introFrameCount && renderFrame(1, 0)) {
+      if (nextFrame >= introFrameCount)
+        cacheRef.current?.request([
+          FRAME_URLS[0].at(-1)!,
+          ...FRAME_URLS[1].slice(0, 29),
+        ]);
+      if (
+        nextFrame >= introFrameCount &&
+        cacheRef.current?.ready(openingBatch) &&
+        renderFrame(1, 0)
+      ) {
         setActiveSection(1);
         setMotionPoint(getMotionPoint(1, 0));
         setAutoplayDone(true);
         document.body.style.overflow = bodyOverflow;
         document.documentElement.style.overflow = htmlOverflow;
+        unlockScroll();
         return;
       }
 
@@ -483,73 +760,193 @@ export function HomeExperience() {
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      video.onended = null;
+      video.onerror = null;
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
       document.body.style.overflow = bodyOverflow;
       document.documentElement.style.overflow = htmlOverflow;
+      unlockScroll();
     };
-  }, [autoplayDone, isStatic, renderFrame, setMotionPoint]);
+  }, [autoplayDone, isStatic, renderFrame, setMotionPoint, drawImage]);
 
   useEffect(() => {
-    if (isStatic !== false || !autoplayDone || !containerRef.current || !pinRef.current) return;
+    if (
+      isStatic !== false ||
+      !autoplayDone ||
+      !containerRef.current ||
+      !pinRef.current
+    )
+      return;
 
-    let pendingFrame = 0;
+    let needsPaint = false;
+    let unsubscribe = () => {};
+    let paint = () => {};
+    let tick = () => {};
+    let scrollAnimation: gsap.core.Tween | undefined;
     const ctx = gsap.context(() => {
       const playhead = { progress: 0 };
-      const update = () => {
-        cancelAnimationFrame(pendingFrame);
+
+      let lastSection = -1;
+      paint = () => {
+        if (!needsPaint) return;
+        needsPaint = false;
         const frame = frameFromScrollProgress(playhead.progress);
-        if (!renderFrame(frame.folderId, frame.localFrame)) {
-          pendingFrame = requestAnimationFrame(update);
-          return;
-        }
-        setActiveSection(frame.sectionIndex);
-        const enter = easeInOutCubic(Math.min(1, Math.max(0, (frame.sectionProgress - 0.5) / 0.14)));
-        const leave = frame.folderId === 7 ? 1 : Math.min(1, (1 - frame.sectionProgress) / 0.12);
-        const opacity = Math.min(enter, leave);
-        contentOpacity.set(opacity);
-        contentX.set((frame.sectionIndex % 2 === 1 ? 28 : -28) * (1 - enter));
-        if (contentRef.current) {
-          contentRef.current.style.visibility = opacity > 0.01 ? "visible" : "hidden";
-          contentRef.current.style.pointerEvents = opacity > 0.95 ? "auto" : "none";
-          contentRef.current.setAttribute("aria-hidden", String(opacity <= 0.01));
-        }
-        setMotionPoint(getMotionPoint(frame.sectionIndex, frame.sectionProgress));
+        updateContent();
+        renderFrame(frame.folderId, frame.localFrame, true);
       };
-      gsap.to(playhead, {
+      unsubscribe =
+        cacheRef.current?.subscribe(() => {
+          needsPaint = true;
+        }) ?? unsubscribe;
+      const update = () => {
+        needsPaint = true;
+      };
+      const updateContent = () => {
+        const frame = frameFromScrollProgress(playhead.progress);
+        // Loading a pose must never block the scroll timeline or its copy.
+        if (lastSection !== frame.sectionIndex) {
+          lastSection = frame.sectionIndex;
+          setActiveSection(frame.sectionIndex);
+        }
+        const enterStart = frame.folderId === 1 ? 0.5 : CONTENT_ENTER_START;
+        const enter = easeInOutCubic(
+          Math.min(
+            1,
+            Math.max(
+              0,
+              (frame.sectionProgress - enterStart) / CONTENT_ENTER_RANGE,
+            ),
+          ),
+        );
+        const leave =
+          frame.folderId === 7
+            ? 1
+            : easeInOutCubic(
+                Math.min(
+                  1,
+                  Math.max(0, (1 - frame.sectionProgress) / CONTENT_EXIT_RANGE),
+                ),
+              );
+        const opacity = Math.min(enter, leave);
+        const enterX = frame.sectionIndex % 2 === 1 ? 28 : -28;
+        const exitX = frame.sectionIndex % 2 === 1 ? -28 : 28;
+        const contentOffset =
+          enter < 1 ? enterX * (1 - enter) : exitX * (1 - leave);
+        if (contentMotionRef.current)
+          gsap.set(contentMotionRef.current, { opacity, x: contentOffset });
+        const thoughtEnter = easeInOutCubic(
+          Math.min(1, Math.max(0, (frame.sectionProgress - 0.76) / 0.09)),
+        );
+        const thoughtLeave =
+          frame.folderId === 7
+            ? 1
+            : Math.min(1, Math.max(0, (1 - frame.sectionProgress) / 0.06));
+        const thoughtVisible = thoughtEnter * thoughtLeave;
+        if (thoughtRef.current)
+          gsap.set(thoughtRef.current, {
+            opacity: thoughtVisible,
+            y: (1 - thoughtEnter) * 12,
+          });
+        if (thoughtRef.current) {
+          thoughtRef.current.style.visibility =
+            thoughtVisible > 0.01 ? "visible" : "hidden";
+          thoughtRef.current.setAttribute(
+            "aria-hidden",
+            String(thoughtVisible <= 0.01),
+          );
+        }
+        if (contentRef.current) {
+          contentRef.current.style.visibility =
+            opacity > 0.001 ? "visible" : "hidden";
+          contentRef.current.style.pointerEvents =
+            opacity > 0.95 ? "auto" : "none";
+          contentRef.current.setAttribute(
+            "aria-hidden",
+            String(opacity <= 0.001),
+          );
+        }
+        setMotionPoint(
+          getMotionPoint(frame.sectionIndex, frame.sectionProgress),
+        );
+      };
+      scrollAnimation = gsap.to(playhead, {
+        onUpdate: update,
         progress: 1,
         ease: "none",
-        onUpdate: update,
         scrollTrigger: {
           trigger: containerRef.current,
           pin: pinRef.current,
-          start: "top top+=72",
+          start: "top top",
           end: `+=${scrollDistance}`,
-          scrub: 0.35,
+          scrub: SCROLL_SCRUB,
           anticipatePin: 1,
           invalidateOnRefresh: true,
-          onRefresh: update,
         },
       });
+      tick = paint;
+      gsap.ticker.add(tick);
     }, containerRef);
 
     ScrollTrigger.refresh();
+    containerRef.current.parentElement?.setAttribute(
+      "data-scroll-ready",
+      "true",
+    );
+    if (returnPositionRef.current !== null) {
+      scrollWithLenis(returnPositionRef.current);
+      ScrollTrigger.update();
+      const targetProgress = scrollAnimation?.scrollTrigger?.progress ?? 0;
+      scrollAnimation?.progress(targetProgress);
+      scrollAnimation?.scrollTrigger?.update();
+      paint();
+      returnPositionRef.current = null;
+    }
 
     return () => {
-      cancelAnimationFrame(pendingFrame);
+      containerRef.current?.parentElement?.setAttribute(
+        "data-scroll-ready",
+        "false",
+      );
+      unsubscribe();
+      gsap.ticker.remove(tick);
       ctx.revert();
     };
-  }, [autoplayDone, contentOpacity, contentX, frameFromScrollProgress, isStatic, renderFrame, scrollDistance, setMotionPoint]);
+  }, [
+    autoplayDone,
+    frameFromScrollProgress,
+    isStatic,
+    renderFrame,
+    scrollDistance,
+    setMotionPoint,
+  ]);
 
   useEffect(() => {
     if (isStatic !== false) return;
 
     const onResize = () => {
       resizeCanvas();
-      renderFrame(currentFrameRef.current.folder, currentFrameRef.current.frame - 1);
+      renderFrame(
+        currentFrameRef.current.folder,
+        currentFrameRef.current.frame - 1,
+      );
       ScrollTrigger.refresh();
     };
 
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const observer = new ResizeObserver(() => {
+      resizeCanvas();
+      renderFrame(
+        currentFrameRef.current.folder,
+        currentFrameRef.current.frame - 1,
+      );
+    });
+    if (canvasRef.current) observer.observe(canvasRef.current);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      observer.disconnect();
+    };
   }, [isStatic, renderFrame, resizeCanvas]);
 
   useEffect(() => {
@@ -565,7 +962,9 @@ export function HomeExperience() {
     };
   }, [autoplayDone, isStatic]);
 
-  const visibleSection = NARRATIVE_SECTIONS.find((section) => section.folder === activeSection) ?? NARRATIVE_SECTIONS[0];
+  const visibleSection =
+    NARRATIVE_SECTIONS.find((section) => section.folder === activeSection) ??
+    NARRATIVE_SECTIONS[0];
   const contentOnRight = activeSection % 2 === 1;
 
   useEffect(() => {
@@ -577,7 +976,7 @@ export function HomeExperience() {
 
   if (isStatic) {
     return (
-      <div className="bg-[#ededeb] text-black">
+      <div className="bg-[#ededeb] text-black" data-home-ready="true">
         <StaticNarrative />
         <LandingSections />
       </div>
@@ -585,37 +984,83 @@ export function HomeExperience() {
   }
 
   return (
-    <div className="amo-experience text-black" style={{ backgroundColor: FRAME_BACKGROUND }}>
+    <div
+      className="amo-experience -mt-[4.5rem] text-black"
+      data-home-ready={autoplayDone}
+      style={{ backgroundColor: FRAME_BACKGROUND }}
+    >
       <h1 className="sr-only">Vyara Amoghya Technologies</h1>
       <section
         ref={containerRef}
         className="relative"
         aria-label="AMO guided landing narrative"
       >
-        <div ref={pinRef} className="relative h-[calc(100vh-4.5rem)] min-h-[600px] overflow-hidden" style={{ backgroundColor: FRAME_BACKGROUND }}>
-          <motion.div
+        <div
+          ref={pinRef}
+          className="relative h-[100svh] min-h-[600px] overflow-hidden"
+          style={{ backgroundColor: FRAME_BACKGROUND }}
+        >
+          <div
+            ref={characterRef}
             className="absolute -inset-x-[8vw] -inset-y-[8vh]"
             style={{
-              x: characterX, y: characterY,
               willChange: "transform",
             }}
           >
-            <img ref={posterRef} src={FRAME_URLS[0][0]} alt="" width={1120} height={630} fetchPriority="high" className="absolute inset-0 h-full w-full object-cover" style={{ transform: `scale(${FRAME_RENDER_SCALE})` }} onError={event => { if (!event.currentTarget.src.endsWith(".png")) event.currentTarget.src = pngUrl(FRAME_URLS[0][0]); }} />
-            <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />
-          </motion.div>
+            <div
+              ref={posterRef}
+              role="status"
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <span
+                className="h-6 w-6 animate-spin motion-reduce:animate-none rounded-full border-2 border-black/15 border-t-black"
+                aria-hidden="true"
+              />
+              <span className="sr-only">Loading AMO</span>
+            </div>
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 block h-full w-full"
+              aria-hidden="true"
+            />
+          </div>
 
           <div
             ref={contentRef}
             className={[
-              "absolute top-1/2 w-[min(32vw,360px)] -translate-y-1/2",
+              "absolute top-1/2 w-[min(35vw,410px)] -translate-y-1/2",
               contentOnRight ? "right-[8vw]" : "left-[8vw]",
             ].join(" ")}
             style={{ visibility: "hidden" }}
             aria-hidden="true"
           >
-            <motion.div style={{ opacity: contentOpacity, x: contentX }}>
-            <NarrativeCard section={visibleSection} />
-            </motion.div>
+            <div ref={contentMotionRef} style={{ opacity: 0 }}>
+              <NarrativeCard section={visibleSection} />
+            </div>
+          </div>
+          <div
+            ref={thoughtRef}
+            className={thoughtStyles.thought}
+            data-side={contentOnRight ? "left" : "right"}
+            data-amo-thought
+            aria-hidden="true"
+            style={{ opacity: 0, visibility: "hidden" }}
+          >
+            <svg
+              className={thoughtStyles.cloud}
+              viewBox="0 0 300 150"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path d="M30 112 C4 112 2 81 17 70 C1 49 19 26 44 30 C45 7 79 3 95 20 C115 0 147 5 158 20 C180 3 210 9 219 26 C248 12 273 28 272 47 C301 49 308 78 288 94 C301 119 272 139 249 129 C230 150 198 145 184 132 C161 152 132 146 119 133 C96 151 68 139 63 125 C45 136 26 129 30 112 Z" />
+            </svg>
+            <span className={thoughtStyles.trail} aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span className={thoughtStyles.label}>AMO thinks</span>
+            <p>{AMO_THOUGHTS[activeSection]}</p>
           </div>
         </div>
       </section>
@@ -628,24 +1073,39 @@ export function HomeExperience() {
 function NarrativeCard({ section }: { section: NarrativeSection }) {
   const Heading = section.folder === 0 ? "h1" : "h2";
   return (
-    <div className="space-y-6">
-      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-black/50">{section.eyebrow}</p>
-      <Heading className="text-2xl font-black leading-[1.05] text-black sm:text-3xl lg:text-[2rem]">
+    <div className="relative space-y-6 border-l border-black/20 pl-7 before:absolute before:-left-px before:top-0 before:h-20 before:w-[3px] before:bg-[#83a72a]">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/55">
+        {section.eyebrow}
+      </p>
+      <Heading className="text-2xl font-black leading-[1.15] text-black sm:text-3xl lg:text-[2.25rem]">
         {section.title}
       </Heading>
-      {section.copy ? <p className="text-sm leading-6 text-black/70">{section.copy}</p> : null}
+      {section.copy ? (
+        <p className="text-[17px] leading-7 text-black/70">{section.copy}</p>
+      ) : null}
       {section.bullets ? (
         <div className="flex flex-wrap gap-2">
           {section.bullets.map((bullet) => (
-            <span key={bullet} className="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold text-black/70">
+            <span
+              key={bullet}
+              className="rounded-sm border border-black/15 bg-white/80 px-3 py-1.5 text-sm font-semibold text-black/70 shadow-[0_6px_18px_rgba(0,0,0,0.04)]"
+            >
               {bullet}
             </span>
           ))}
         </div>
       ) : null}
       <div className="flex flex-wrap gap-3">
-        {section.secondary ? <SecondaryButton href={section.secondary.href}>{section.secondary.label}</SecondaryButton> : null}
-        {section.primary ? <PrimaryButton href={section.primary.href}>{section.primary.label}</PrimaryButton> : null}
+        {section.secondary ? (
+          <SecondaryButton href={section.secondary.href}>
+            {section.secondary.label}
+          </SecondaryButton>
+        ) : null}
+        {section.primary ? (
+          <PrimaryButton href={section.primary.href}>
+            {section.primary.label}
+          </PrimaryButton>
+        ) : null}
       </div>
     </div>
   );
@@ -656,11 +1116,29 @@ function StaticNarrative() {
     <section className="mx-auto w-full max-w-container px-4 py-12 sm:px-6 lg:px-8">
       <div className="space-y-16">
         {NARRATIVE_SECTIONS.map((section) => {
-          const folder = FRAME_FOLDERS.find((item) => item.id === section.folder) ?? FRAME_FOLDERS[0];
+          const folder =
+            FRAME_FOLDERS.find((item) => item.id === section.folder) ??
+            FRAME_FOLDERS[0];
           return (
-            <article key={section.folder} className="grid gap-8 lg:grid-cols-2 lg:items-center">
+            <article
+              key={section.folder}
+              className="grid gap-8 lg:grid-cols-2 lg:items-center"
+            >
               <div className="relative mx-auto aspect-video w-full overflow-hidden bg-[#ededeb]">
-                <img src={lastFrameUrl(folder)} alt="AMO, the VAT studio character" width={1120} height={630} loading={section.folder === 0 ? "eager" : "lazy"} decoding="async" onError={event => { const img = event.currentTarget; if (!img.src.endsWith(".png")) img.src = pngUrl(lastFrameUrl(folder)); }} className="h-full w-full object-contain" />
+                <img
+                  src={mediaUrl(lastFrameUrl(folder))}
+                  alt="AMO, the VAT studio character"
+                  width={1120}
+                  height={630}
+                  loading={section.folder === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                  onError={(event) => {
+                    const img = event.currentTarget;
+                    if (!img.src.endsWith(".png"))
+                      img.src = pngUrl(lastFrameUrl(folder));
+                  }}
+                  className="h-full w-full object-contain"
+                />
               </div>
               <NarrativeCard section={section} />
             </article>
@@ -674,148 +1152,43 @@ function StaticNarrative() {
 function LandingSections() {
   return (
     <>
+      <ServicesMarquee />
+      <ServicesSection />
       <PricingPreview />
-      <ClosingContact />
     </>
   );
 }
 
-function Reveal({ children, className }: { children: React.ReactNode; className: string }) {
-  const reducedMotion = useReducedMotion();
+function PrimaryButton({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
-    <motion.div className={className} initial={reducedMotion ? false : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.08 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
-      {children}
-    </motion.div>
-  );
-}
-
-function PricingPreview() {
-  return (
-    <section id="pricing" className="border-y border-black/10 bg-[#ededeb] py-14">
-      <Reveal className="mx-auto max-w-container px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#C8FF3D] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-black">
-              <Sparkles className="h-4 w-4" />
-              Founding-client package options
-            </div>
-            <h2 className="text-2xl font-black leading-none text-black sm:text-3xl">Clear ways to start.</h2>
-            <p className="text-sm leading-6 text-black/65">
-              Start with the essentials or plan a complete launch. Explore our services, then build a package around your goals, timeline, and budget.
-            </p>
-          </div>
-          <PrimaryButton href="/package-builder">Build Your Package</PrimaryButton>
-        </div>
-
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {PRICING_TIERS.map(([title, copy]) => (
-            <div key={title} className="rounded-lg border border-black/10 bg-white/75 p-5">
-              <h3 className="text-base font-black text-black">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-black/65">{copy}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SERVICE_TEASERS.map(([title, copy, price]) => (
-            <Link
-              key={title}
-              href="/services"
-              className="group rounded-lg border border-black/10 bg-white/75 p-4 transition-colors hover:border-black/30"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <h3 className="text-sm font-black text-black">{title}</h3>
-                <span className="shrink-0 rounded-full bg-black px-3 py-1 text-xs font-bold text-[#C8FF3D]">{price}</span>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-black/60">{copy}</p>
-            </Link>
-          ))}
-        </div>
-
-        <div className="mt-10 grid gap-6 lg:grid-cols-2">
-          <InfoPanel title="Why Businesses Choose Amoghya" items={VALUE_PROPS} />
-          <InfoPanel title="Free With Every Project" items={FREE_BONUSES} />
-        </div>
-
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
-          <BundleTeaser title="Startup Launch Bundle" copy="Business website, logo design, brand strategy, and performance marketing for founders who need a clean first launch." />
-          <BundleTeaser title="Restaurant Launch Bundle" copy="Business website, product photography, social reels, and WhatsApp marketing for food brands that need faster visibility." />
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-function InfoPanel({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="rounded-lg border border-black/10 bg-white/75 p-5">
-      <h3 className="text-lg font-black text-black">{title}</h3>
-      <ul className="mt-5 space-y-3">
-        {items.map((item) => (
-          <li key={item} className="flex items-start gap-3 text-sm text-black/70">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-black" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function BundleTeaser({ title, copy }: { title: string; copy: string }) {
-  return (
-    <div className="rounded-lg border border-black/10 bg-black p-5 text-white">
-      <Package className="h-5 w-5 text-[#C8FF3D]" />
-      <h3 className="mt-4 text-lg font-black">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-white/70">{copy}</p>
-      <Link href="/package-builder" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#C8FF3D]">
-        View bundle options <ArrowRight className="h-4 w-4" />
-      </Link>
-    </div>
-  );
-}
-
-function ClosingContact() {
-  return (
-    <section className="bg-[#ededeb] py-16">
-      <Reveal className="mx-auto grid max-w-container gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
-        <div className="space-y-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-black/50">Contact</p>
-          <h2 className="text-3xl font-black leading-none text-black sm:text-4xl">So... what are we building?</h2>
-          <p className="max-w-2xl text-sm leading-6 text-black/65">
-            Tell us what you have in mind. We will help you choose the right services, define the scope, and plan the next step.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <PrimaryButton href="/contact?source=closing-start">Start a Project</PrimaryButton>
-            <SecondaryButton href="/studio/book">Book the Studio</SecondaryButton>
-            <SecondaryButton href="/package-builder">Build Your Package</SecondaryButton>
-            <SecondaryButton href="/contact?source=closing-discovery">Schedule a Discovery Call</SecondaryButton>
-          </div>
-        </div>
-        <div className="rounded-lg border border-black/10 bg-white/75 p-5">
-          <CalendarDays className="h-6 w-6 text-black" />
-          <h3 className="mt-5 text-xl font-black text-black">Bengaluru, Karnataka</h3>
-          <p className="mt-3 text-sm leading-6 text-black/65">
-            Established 2025. VAT Creative Studio brings strategy, brand, engineering, AI automation, marketing, content, and studio production under one roof.
-          </p>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-function PrimaryButton({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className="inline-flex items-center justify-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-bold text-white transition-transform hover:scale-[1.02]">
+    <Link
+      href={href}
+      className={`${href.startsWith("/contact") ? "vat-contact-action " : ""}inline-flex items-center justify-center gap-3 rounded-sm bg-black px-5 py-3 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,0,0,0.14)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(0,0,0,0.2)]`}
+    >
       <span>{children}</span>
       <ArrowRight className="h-4 w-4 text-[#C8FF3D]" />
     </Link>
   );
 }
 
-function SecondaryButton({ href, children }: { href: string; children: React.ReactNode }) {
+function SecondaryButton({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
-    <Link href={href} className="inline-flex items-center justify-center rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-bold text-black transition-colors hover:border-black/40">
+    <Link
+      href={href}
+      className="inline-flex items-center justify-center rounded-sm border border-black/20 bg-white/85 px-5 py-3 text-sm font-bold text-black shadow-[0_8px_18px_rgba(0,0,0,0.05)] transition-[transform,border-color] hover:-translate-y-0.5 hover:border-black/50"
+    >
       {children}
     </Link>
   );

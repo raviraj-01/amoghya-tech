@@ -5,14 +5,24 @@
 @layer base {
   html {
     scrollbar-gutter: stable;
+    scroll-behavior: auto !important;
+    scroll-snap-type: none !important;
+  }
+
+  body {
+    scroll-snap-type: none !important;
   }
 
   :root {
     --background: #EDEDEB;
     --foreground: #000000;
+    --font-mono: var(--font-sans);
   }
 
   body {
+    font-family: var(--font-sans), serif;
+    font-optical-sizing: auto;
+    font-style: normal;
     background-color: var(--background);
     color: var(--foreground);
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -24,6 +34,19 @@
     outline-offset: 4px;
   }
 
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading), serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+  }
+
   #pricing {
     scroll-margin-top: 4.5rem;
   }
@@ -32,20 +55,111 @@
     opacity: 0;
     pointer-events: none;
   }
+
+  body[data-vat-intro-playing="true"] .homeHeader {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-110%);
+  }
 }
 
 body[data-amo-experience],
-body[data-amo-experience] > header,
-.amo-experience > section {
+.amo-experience>section {
   background-color: var(--background);
 }
 
-body[data-amo-experience] > header {
+body[data-amo-experience]>header {
+  background-color: transparent;
   transition: none;
 }
 
+/* Keep Cinzel headings consistent across utility and module-based pages. */
+main :is(h1, h2, h3, h4, h5, h6) {
+  font-weight: 500 !important;
+}
+
 /* Reduced motion preference */
+.vat-contact-action {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 240ms ease, box-shadow 240ms ease, color 240ms ease;
+}
+
+.vat-contact-action::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: #d2fa69;
+  transform: translateY(105%);
+  transition: transform 350ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.vat-contact-action:hover,
+.vat-contact-action:focus-visible {
+  color: #19251b;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px #19251b20;
+  text-decoration: none;
+}
+
+.vat-contact-action:hover::before,
+.vat-contact-action:focus-visible::before {
+  transform: translateY(0);
+}
+
+.vat-contact-action svg {
+  transition: transform 300ms, color 240ms;
+}
+
+.vat-contact-action:hover svg,
+.vat-contact-action:focus-visible svg {
+  transform: translate(3px, -3px);
+  color: #19251b;
+}
+
+/* A single short pulse on interaction, never continuous shaking. */
+:is(button, .vat-animated-button, .vat-contact-action, a[role="button"], a.inline-flex):not(:disabled):is(:hover, :focus-visible) {
+  animation: vat-button-spark 650ms ease-out both;
+}
+
+@keyframes vat-button-spark {
+  0% {
+    scale: 1;
+    rotate: 0deg;
+    box-shadow: 0 0 0 1px #d2fa6900;
+  }
+
+  18% {
+    scale: 1.035;
+    rotate: -1deg;
+    box-shadow: 0 0 0 1px #d2fa69, 0 0 16px #d2fa6970;
+  }
+
+  32% {
+    rotate: 1deg;
+  }
+
+  46% {
+    rotate: -0.6deg;
+  }
+
+  60% {
+    rotate: 0.4deg;
+    box-shadow: 0 0 0 2px #f4ffd9, 0 0 22px #d2fa6955;
+  }
+
+  100% {
+    scale: 1.025;
+    rotate: 0deg;
+    box-shadow: 0 0 0 1px #a8c765, 0 0 10px #d2fa6930;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

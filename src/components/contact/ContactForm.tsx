@@ -82,16 +82,6 @@ export function ContactForm() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <label className="block text-xs font-semibold text-content-primary uppercase tracking-wider mb-2">
-            Estimated Budget
-          </label>
-          <input
-            type="text"
-            placeholder="e.g. ₹5,00,000 / $10,000"
-            className="w-full px-4 py-2.5 rounded-lg bg-surface-muted border border-border-subtle text-sm text-content-primary focus:outline-none focus:border-brand-primary"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-content-primary uppercase tracking-wider mb-2">
             Target Timeline
           </label>
           <input

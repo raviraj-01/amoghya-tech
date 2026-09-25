@@ -1,19 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
-import Script from "next/script";
+import { ScrollSystem } from "@/components/layout/ScrollSystem";
+import { Cinzel, Cormorant } from "next/font/google";
+import { ScrollPositionManager } from "@/components/layout/ScrollPositionManager";
 import "@/styles/globals.css";
+import "lenis/dist/lenis.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
-const inter = Inter({
+const cormorant = Cormorant({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const cinzel = Cinzel({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-heading",
   display: "swap",
 });
 
@@ -70,24 +72,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`scroll-smooth ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${cormorant.variable} ${cinzel.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen flex flex-col bg-surface-base text-content-primary antialiased font-sans">
-        <Script
-          id="vat-home-scroll-reset"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function () {
-                if (location.pathname !== "/" || location.hash) return;
-                if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-                window.scrollTo(0, 0);
-                requestAnimationFrame(function () { window.scrollTo(0, 0); });
-              })();
-            `,
-          }}
-        />
+        <ScrollSystem />
+        <ScrollPositionManager />
         <Navbar />
         <main className="flex-grow pt-[4.5rem]">{children}</main>
         <Footer />

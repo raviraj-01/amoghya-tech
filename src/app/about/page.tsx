@@ -1,66 +1,75 @@
+import Image from "@/components/media/MediaImage";
 import Link from "next/link";
-import { Sparkles, ArrowRight, Compass, ShieldCheck, Zap } from "lucide-react";
+import { ArrowUpRight, Layers, Sparkles, ClipboardList, Clock3, MapPin, Mail } from "lucide-react";
+import { CONTACT_EMAIL } from "@/lib/contact-details";
+import styles from "@/components/offerings/Offerings.module.css";
+import about from "./about.module.css";
 
 export const metadata = {
-  title: "About Us & AMO | Vyara Amogya Technologies",
-  description: "Learn about Vyara Amogya Technologies, our operating model, and our hero character AMO.",
+  title: "About Amoghya & AMO",
+  description: "Meet Amoghya: a Bengaluru-based team bringing branding, technology, AI, marketing and creative production together.",
 };
+
+// Customer Pricing & Offers, sections 1, 2 and 16. Time-limited offers omitted.
+const principles = [
+  { icon: Layers, title: "One team, connected services", description: "Branding, technology, AI, marketing and content under one roof, with shared context across the work." },
+  { icon: Sparkles, title: "AI with a practical purpose", description: "AI assistants and business automation alongside design and engineering, shaped around everyday business needs." },
+  { icon: ClipboardList, title: "A scope you can understand", description: "Starter, Growth and Enterprise packages give you a clear starting point for agreeing the scope and price before you sign." },
+  { icon: Clock3, title: "Clear delivery timelines", description: "Service-specific timelines and direct communication so you know what is being delivered and when." },
+];
+
+const capabilities = [
+  { title: "Shape the brand", description: "Positioning, messaging, visual identity and interface design.", href: "/services/brand-strategy-identity" },
+  { title: "Build the platform", description: "Websites, mobile applications and custom business software.", href: "/services/website-development" },
+  { title: "Connect the operations", description: "AI solutions, automation and cloud technology services.", href: "/services/business-automation" },
+  { title: "Create and reach", description: "Photography, film, motion and digital marketing.", href: "/studio" },
+];
 
 export default function AboutPage() {
   return (
-    <div className="py-16 sm:py-24 max-w-container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mb-16">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-muted border border-border-subtle text-xs font-mono text-content-secondary mb-4">
-          <Sparkles className="w-3.5 h-3.5 text-brand-secondary" />
-          <span>Company & Identity (PRD §5)</span>
-        </div>
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-content-primary">
-          About Vyara Amogya
-        </h1>
-        <p className="mt-4 text-lg text-content-secondary leading-relaxed">
-          We combine brand storytelling, software engineering, intelligent systems, and studio content production into one unified delivery engine.
-        </p>
-      </div>
+    <PageExperience variant="about"><div className={styles.page}>
+      <header className={styles.intro}>
+        <p className={styles.eyebrow}>About / Bengaluru, Karnataka</p>
+        <h1>Amoghya Technologies</h1>
+        <p>One team for your brand, your technology and what comes next. We bring strategy, design, engineering, AI, marketing and creative production together.</p>
+        <Link className={styles.button} href="/contact?source=about">Start a conversation <ArrowUpRight size={18} aria-hidden="true" /></Link>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-        <div className="p-8 rounded-2xl bg-surface-elevated border border-border-subtle shadow-subtle space-y-3">
-          <div className="w-10 h-10 rounded-lg bg-surface-muted flex items-center justify-center text-brand-primary">
-            <Compass className="w-5 h-5" />
-          </div>
-          <h2 className="text-lg font-bold text-content-primary">Think Clearly</h2>
-          <p className="text-xs text-content-secondary leading-relaxed">
-            Rigorous digital strategy, user research, and technical roadmapping before writing a single line of code.
-          </p>
+      <section className={styles.section} aria-labelledby="approach-heading">
+        <div className={styles.sectionHeading}>
+          <h2 id="approach-heading">Less explaining.<br />More shared understanding.</h2>
+          <p>A website, a brand identity, a campaign and a business tool should not feel like separate conversations. Amoghya brings these services together so your business context can carry from one part of the project to the next.</p>
         </div>
+        <div className={about.principles}>{principles.map(({ icon: Icon, title, description }) => (
+          <article className={about.principle} key={title}><Icon size={23} aria-hidden="true" /><div><h3>{title}</h3><p>{description}</p></div></article>
+        ))}</div>
+      </section>
 
-        <div className="p-8 rounded-2xl bg-surface-elevated border border-border-subtle shadow-subtle space-y-3">
-          <div className="w-10 h-10 rounded-lg bg-surface-muted flex items-center justify-center text-brand-secondary">
-            <Zap className="w-5 h-5" />
-          </div>
-          <h2 className="text-lg font-bold text-content-primary">Build Beautifully</h2>
-          <p className="text-xs text-content-secondary leading-relaxed">
-            High-performance web architecture, fluid motion, interactive 3D, and production-grade software craftsmanship.
-          </p>
-        </div>
+      <section className={styles.section} aria-labelledby="capabilities-heading">
+        <div className={styles.sectionHeading}><h2 id="capabilities-heading">Different disciplines.<br />One business context.</h2><p>Start with the service you need today, or bring several together in a package. Business consulting helps clarify the direction when the brief is still taking shape.</p></div>
+        <div className={about.capabilities}>{capabilities.map((item, index) => (
+          <Link className={about.capability} href={item.href} key={item.title}><span className={styles.eyebrow}>0{index + 1}</span><div><h3>{item.title}</h3><p>{item.description}</p></div><ArrowUpRight size={20} aria-hidden="true" /></Link>
+        ))}</div>
+        <Link className={styles.textLink} href="/services/business-consulting">Explore business consulting <ArrowUpRight size={17} aria-hidden="true" /></Link>
+      </section>
 
-        <div className="p-8 rounded-2xl bg-surface-elevated border border-border-subtle shadow-subtle space-y-3">
-          <div className="w-10 h-10 rounded-lg bg-surface-muted flex items-center justify-center text-brand-accent">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <h2 className="text-lg font-bold text-content-primary">Grow Intelligently</h2>
-          <p className="text-xs text-content-secondary leading-relaxed">
-            Business automation, CRM workflows, lifecycle marketing, and ongoing operations to scale predictably.
-          </p>
-        </div>
-      </div>
+      <section className={about.amo} aria-labelledby="amo-heading">
+        <div className={about.portrait}><Image src="/image/AMO-7.png" alt="AMO, Amoghya's character, with folded arms and bright green star-shaped eyes" width={1086} height={1448} sizes="(max-width: 600px) 200px, 280px" /></div>
+        <div><p className={styles.eyebrow}>The face of Amoghya</p><h2 id="amo-heading">Meet AMO.</h2><p>AMO is our brand character and your guide to Amoghya, connecting the different sides of what we do through the website.</p><p>Behind the character is a team working across brand, technology and creative production. The conversation about your project is with us.</p><Link className={styles.textLink} href="/work">Explore our industry solutions <ArrowUpRight size={17} aria-hidden="true" /></Link></div>
+      </section>
 
-      {/* Hero Character AMO note */}
-      <div className="p-8 rounded-2xl bg-surface-dark text-text-inverted space-y-4">
-        <h2 className="text-xl font-bold">Meet AMO</h2>
-        <p className="text-sm text-text-invertedMuted leading-relaxed max-w-2xl">
-          AMO is our interactive brand navigator — guiding visitors through our universe of capabilities, from digital design and automated workflows to physical studio production.
-        </p>
-      </div>
-    </div>
+      <section className={styles.inclusions} aria-labelledby="fit-heading">
+        <div><p className={styles.eyebrow}>Room to grow</p><h2 id="fit-heading">The right scope for your stage.</h2><p>From a focused first launch to a more connected business, choose a starting point that fits your needs.</p><Link className={styles.textLink} href="/contact">Discuss your project <ArrowUpRight size={17} aria-hidden="true" /></Link></div>
+        <dl className={about.tiers}><div><dt>Starter</dt><dd>Lean scopes for small businesses and early-stage startups.</dd></div><div><dt>Growth</dt><dd>More customization, integrations and brand-specific design.</dd></div><div><dt>Enterprise</dt><dd>Multi-location businesses, complex integrations and higher security needs.</dd></div></dl>
+      </section>
+
+      <section className={styles.closing} aria-labelledby="about-contact">
+        <div><p className={about.location}><MapPin size={17} aria-hidden="true" /> Bengaluru, Karnataka</p><h2 id="about-contact">Tell us what comes next.</h2><p>Bring your brief, questions or an idea that needs a clearer direction.</p><a className={styles.textLink} href={`mailto:${CONTACT_EMAIL}`}><Mail size={17} aria-hidden="true" />{CONTACT_EMAIL}</a></div>
+        <Link className={styles.button} href="/contact?source=about">Discuss your project <ArrowUpRight size={18} aria-hidden="true" /></Link>
+      </section>
+      <ProjectQuestions variant="about" />
+    </div></PageExperience>
   );
 }
+import { PageExperience } from "@/components/offerings/PageExperience";
+import { ProjectQuestions } from "@/components/offerings/ProjectQuestions";

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ServiceDetail } from "@/components/services/ServiceDetail";
+import { serviceRailData } from "@/components/services/service-rail-data";
 
 interface ServiceDetailPageProps {
   params: {
@@ -7,7 +9,14 @@ interface ServiceDetailPageProps {
   };
 }
 
+export function generateMetadata({ params }: ServiceDetailPageProps) {
+  const service = serviceRailData.find(item => item.slug === params.slug);
+  return service ? { title: `${service.title} | Amoghya Technologies`, description: service.description } : {};
+}
+
 export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
+  const service = serviceRailData.find(item => item.slug === params.slug);
+  if (service) return <ServiceDetail service={service} />;
   const formattedTitle = params.slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -45,12 +54,6 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             >
               <span>Inquire About This Service</span>
               <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/package-builder"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-surface-muted text-content-primary text-sm font-medium hover:bg-surface-muted/80 border border-border-subtle transition-all"
-            >
-              <span>Add to Custom Package</span>
             </Link>
           </div>
         </div>

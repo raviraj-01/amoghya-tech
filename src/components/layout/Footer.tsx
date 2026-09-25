@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sparkles, Shield } from "lucide-react";
+import { CONTACT_EMAIL } from "@/lib/contact-details";
 
 export function Footer() {
   const pathname = usePathname();
@@ -13,9 +14,13 @@ export function Footer() {
   }
 
   return (
-    <footer className="border-t border-border-subtle bg-brand-primary pb-12 pt-16 text-surface-base transition-colors">
+    <footer className="border-t border-white/10 bg-[#111411] pb-12 pt-20 text-surface-base transition-colors">
       <div className="max-w-container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-border-subtle">
+        <div className="mb-14 flex flex-col justify-between gap-7 border-b border-white/15 pb-12 md:flex-row md:items-end">
+          <div><p className="mb-4 text-xs uppercase text-brand-secondary">Vyara Amogya Technologies</p><h2 className="max-w-2xl text-3xl leading-tight text-white sm:text-4xl">One team for the brand, technology and content your business needs next.</h2></div>
+          <Link href="/contact?source=footer" className="vat-contact-action inline-flex w-fit items-center gap-5 bg-brand-secondary px-5 py-4 text-sm font-semibold text-black transition-transform hover:-translate-y-1">Start a project <span aria-hidden="true">↗</span></Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-white/15">
           {/* Col 1: Brand & AMO */}
           <div className="md:col-span-1 space-y-4">
             <Link href="/" className="flex items-center gap-2">
@@ -57,11 +62,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/package-builder" className="text-surface-base/70 transition-colors hover:text-brand-secondary">
-                  Build Your Package
-                </Link>
-              </li>
-              <li>
                 <Link href="/about" className="text-surface-base/70 transition-colors hover:text-brand-secondary">
                   About the Company & AMO
                 </Link>
@@ -90,6 +90,9 @@ export function Footer() {
               Connect & Operations
             </h3>
             <ul className="space-y-2 text-sm">
+              <li>
+                <a href={`mailto:${CONTACT_EMAIL}`} className="break-all text-surface-base/90 transition-colors hover:text-brand-secondary">{CONTACT_EMAIL}</a>
+              </li>
               <li>
                 <Link href="/contact" className="text-surface-base/70 transition-colors hover:text-brand-secondary">
                   Contact & Inquiries
