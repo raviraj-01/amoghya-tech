@@ -6,6 +6,11 @@ import "@/styles/globals.css";
 import "lenis/dist/lenis.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { openGraphForPage } from "@/lib/seo";
+
+const siteUrl = new URL("https://amoghya.netlify.app");
+const socialImage =
+  "https://res.cloudinary.com/dtgvkkgbk/image/upload/c_limit,w_1200,q_auto,f_jpg/v1790323217/ezgif-frame-237_g9we74.png";
 
 const cormorant = Cormorant({
   subsets: ["latin"],
@@ -27,36 +32,25 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: siteUrl,
   title: {
-    default: "Vyara Amogya Technologies | Led by AMO",
-    template: "%s | Vyara Amogya Technologies",
+    default: "Amoghya Technologies | Brand, Digital & AI Studio",
+    template: "%s | Amoghya Technologies",
   },
   description:
-    "A premier marketing and commercial-operations platform led by AMO. Strategy, Branding, Digital Experiences, Engineering, AI & Automation, and Studio Services.",
-  keywords: [
-    "AMO",
-    "Digital Experience",
-    "Creative Studio",
-    "AI Automation",
-    "Full-Stack Engineering",
-    "Brand Strategy",
-    "Commercial Operations",
-  ],
+    "Amoghya Technologies brings brand strategy, web development, AI automation, digital marketing and creative production together in Bengaluru.",
   authors: [{ name: "Vyara Amogya Technologies" }],
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://amoghya.tech",
-    siteName: "Vyara Amogya Technologies",
-    title: "Vyara Amogya Technologies | Interactive 3D & Digital Operations",
-    description:
-      "A premium marketing and commercial-operations platform led by AMO. Strategy, Branding, Digital Experiences, Engineering, Automation, and Studio Services.",
-  },
+  openGraph: openGraphForPage(
+    "/",
+    "Amoghya Technologies | Brand, Digital & AI Studio",
+    "One Bengaluru team for brand strategy, digital experiences, AI automation, marketing and creative production.",
+  ),
   twitter: {
     card: "summary_large_image",
-    title: "Vyara Amogya Technologies | Led by AMO",
+    title: "Amoghya Technologies | Brand, Digital & AI Studio",
     description:
-      "A premier marketing and commercial-operations platform led by AMO.",
+      "One Bengaluru team for brand strategy, digital experiences, AI automation, marketing and creative production.",
+    images: [socialImage],
   },
   robots: {
     index: true,

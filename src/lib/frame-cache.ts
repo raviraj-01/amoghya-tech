@@ -18,7 +18,14 @@ function remember(url: string, blob: Blob) {
 
 /** Compressed history survives route changes; only a small window stays decoded. */
 export class FrameCache {
-  constructor(private resolveUrl: (url: string) => string = url => url) {}
+  constructor(
+    private resolveUrl: (url: string) => string = url => url,
+    private options: {
+      maxDecoded?: number;
+      maxConcurrent?: number;
+      cancelObsolete?: boolean;
+    } = {},
+  ) {}
   private entries = new Map<string, Entry>();
   private wanted = new Set<string>();
   private loading = new Map<string, AbortController>();
@@ -28,6 +35,10 @@ export class FrameCache {
   private networkRequests = 0;
   private blobHits = 0;
   private peakActive = 0;
+  private pumpTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private get maxDecoded() { return this.options.maxDecoded ?? MAX_DECODED; }
+  private get maxConcurrent() { return this.options.maxConcurrent ?? 4; }
 
   subscribe(listener: () => void) {
     this.listeners.add(listener);
@@ -35,7 +46,12 @@ export class FrameCache {
   }
   request(urls: string[]) {
     if (this.disposed) return;
-    this.wanted = new Set(urls.slice(0, MAX_DECODED));
+    this.wanted = new Set(urls.slice(0, this.maxDecoded));
+    if (this.options.cancelObsolete) {
+      this.loading.forEach((controller, url) => {
+        if (!this.wanted.has(url)) controller.abort();
+      });
+    }
     this.pump();
   }
   ready(urls: string[]) { return urls.every(url => this.entries.has(url)); }
@@ -58,6 +74,8 @@ export class FrameCache {
   }
   dispose() {
     this.disposed = true;
+    if (this.pumpTimer !== null) clearTimeout(this.pumpTimer);
+    this.pumpTimer = null;
     this.loading.forEach(controller => controller.abort());
     this.entries.forEach(entry => this.release(entry));
     this.entries.clear();
@@ -67,24 +85,33 @@ export class FrameCache {
   private pump() {
     if (this.disposed) return;
     for (const url of Array.from(this.wanted)) {
-      if (this.loading.size >= 4) break;
+      if (this.loading.size >= this.maxConcurrent) break;
       if (this.entries.has(url) || this.loading.has(url) || this.errors.has(url)) continue;
       const controller = new AbortController();
       this.loading.set(url, controller);
       this.peakActive = Math.max(this.peakActive, this.loading.size);
-      void this.load(url, controller).finally(() => {
+      void this.load(url, controller).catch(() => {
+        if (!this.disposed) this.errors.add(url);
+      }).finally(() => {
         this.loading.delete(url);
         if (this.disposed) return;
-        this.pump();
         this.listeners.forEach(listener => listener());
+        this.schedulePump();
       });
     }
+  }
+  private schedulePump() {
+    if (this.disposed || this.pumpTimer !== null) return;
+    this.pumpTimer = setTimeout(() => {
+      this.pumpTimer = null;
+      this.pump();
+    }, 0);
   }
   private async load(url: string, controller: AbortController) {
     const sources = Array.from(new Set([this.resolveUrl(url), url,
       url.replace("/frames-webp/", "/frames/").replace(/\.webp$/, ".png")]));
     for (const source of sources) {
-      if (this.disposed) return;
+      if (this.disposed || controller.signal.aborted) return;
       let objectUrl: string | undefined;
       const attempt = new AbortController();
       const abort = () => attempt.abort();
@@ -104,10 +131,11 @@ export class FrameCache {
         image.decoding = "async";
         image.src = objectUrl;
         await image.decode();
-        if (!image.naturalWidth || this.disposed) throw new Error("Frame unavailable");
+        if (!image.naturalWidth || this.disposed || controller.signal.aborted)
+          throw new Error("Frame unavailable");
         remember(source, blob);
         this.entries.set(url, { image, objectUrl });
-        while (this.entries.size > MAX_DECODED) {
+        while (this.entries.size > this.maxDecoded) {
           const key = Array.from(this.entries.keys()).find(key => !this.wanted.has(key)) ?? this.entries.keys().next().value!;
           this.release(this.entries.get(key)!);
           this.entries.delete(key);
@@ -115,7 +143,7 @@ export class FrameCache {
         return;
       } catch {
         if (objectUrl) URL.revokeObjectURL(objectUrl);
-        if (!this.disposed) {
+        if (!this.disposed && !controller.signal.aborted) {
           const cached = blobs.get(source);
           if (cached) { blobBytes -= cached.size; blobs.delete(source); }
         }

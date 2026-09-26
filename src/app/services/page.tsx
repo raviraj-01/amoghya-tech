@@ -2,10 +2,13 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ServicesSection } from "@/components/services/ServicesSection";
 import { ServiceExplorer } from "@/components/services/ServiceExplorer";
+import { openGraphForPage } from "@/lib/seo";
 
 export const metadata = {
   title: "Services | Vyara Amogya Technologies",
   description: "Explore eleven connected services across brand, websites, apps, software, AI, marketing, content, design, cloud, automation and consulting.",
+  alternates: { canonical: "/services" },
+  openGraph: openGraphForPage("/services", "Services | Vyara Amogya Technologies", "Explore eleven connected services across brand, websites, apps, software, AI, marketing, content, design, cloud, automation and consulting."),
 };
 
 export default function ServicesPage() {

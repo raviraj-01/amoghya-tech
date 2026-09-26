@@ -4,10 +4,13 @@ import { ArrowUpRight, Layers, Sparkles, ClipboardList, Clock3, MapPin, Mail } f
 import { CONTACT_EMAIL } from "@/lib/contact-details";
 import styles from "@/components/offerings/Offerings.module.css";
 import about from "./about.module.css";
+import { openGraphForPage } from "@/lib/seo";
 
 export const metadata = {
   title: "About Amoghya & AMO",
   description: "Meet Amoghya: a Bengaluru-based team bringing branding, technology, AI, marketing and creative production together.",
+  alternates: { canonical: "/about" },
+  openGraph: openGraphForPage("/about", "About Amoghya & AMO", "Meet Amoghya: a Bengaluru-based team bringing branding, technology, AI, marketing and creative production together."),
 };
 
 // Customer Pricing & Offers, sections 1, 2 and 16. Time-limited offers omitted.

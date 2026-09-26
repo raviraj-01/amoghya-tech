@@ -1,9 +1,25 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { openGraphForPage } from "@/lib/seo";
 
 interface CaseStudyPageProps {
   params: {
     slug: string;
+  };
+}
+
+export function generateMetadata({ params }: CaseStudyPageProps) {
+  const title = `${params.slug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")} | Amoghya Work`;
+  const description = "Explore an Amoghya Technologies work and industry solution.";
+  const path = `/work/${params.slug}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: openGraphForPage(path, title, description),
   };
 }
 

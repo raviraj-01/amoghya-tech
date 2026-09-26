@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StudioBookingFlow } from "@/components/booking/StudioBookingFlow";
+import { openGraphForPage } from "@/lib/seo";
 
 export const metadata = {
   title: "Book Studio Time | Vyara Amogya Technologies",
   description: "Guided 6-step studio booking flow per PRD §8.",
+  alternates: { canonical: "/studio/book" },
+  openGraph: openGraphForPage("/studio/book", "Book Studio Time | Vyara Amogya Technologies", "Guided studio booking flow for Amoghya Technologies."),
 };
 
 export default function StudioBookingPage() {

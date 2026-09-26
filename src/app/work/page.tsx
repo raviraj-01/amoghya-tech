@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { ArrowUpRight, Check } from "lucide-react";
 import styles from "@/components/offerings/Offerings.module.css";
+import { openGraphForPage } from "@/lib/seo";
 
 export const metadata = {
   title: "Work & Industry Solutions",
   description: "Explore Amoghya's industry packages for startups, restaurants, e-commerce, real estate, hospitality and interior design.",
+  alternates: { canonical: "/work" },
+  openGraph: openGraphForPage("/work", "Work & Industry Solutions", "Explore Amoghya's industry packages for startups, restaurants, e-commerce, real estate, hospitality and interior design."),
 };
 
 // Customer Pricing & Offers, section 4: offered scopes, not case studies.

@@ -35,5 +35,24 @@
 .section[data-rail] .row { position: absolute; inset: 0; height: 100%; margin: 0; transform-origin: top center; will-change: transform, opacity; }
 @media(min-width:768px) and (max-width:1100px) { .introCopy { gap: 32px; } .intro h2 { font-size: 35px; } .row { padding: 32px; gap: 30px; grid-template-columns: 1fr 1fr; } .titleGroup h3 { font-size: 30px; } .details > p { font-size: 20px; } .details li a { font-size: 16px; padding-block: 13px; } .artwork { gap: 18px; } .artwork img { width: 100px; height: 134px; } .artwork span { font-size: 18px; } }
 @media(min-width:768px) and (max-height:740px) { .row { padding-block: 28px; } .artwork { padding-top: 18px; } .artwork img { width: 90px; height: 120px; } .titleGroup h3 { font-size: 30px; } .details > p { font-size: 20px; } .details ul { margin-block: 18px; } .details li a { padding-block: 10px; } }
-@media(max-width:767px) { .section { padding: 48px 20px; } .introCopy { display: block; } .intro h2 { font-size: 32px; } .introCopy > p { margin-top: 20px; font-size: 18px; } .row { display: block; padding: 30px 24px; margin-bottom: 16px; } .titleGroup h3 { font-size: 29px; } .artwork { margin: 24px 0 28px; padding: 0; } .artwork img { width: 90px; height: 120px; } .artwork span { font-size: 20px; } .details > p { font-size: 20px; } .details li a { font-size: 17px; } .line { display: none; } .explore { font-size: 17px; } }
+@media(max-width:767px) {
+  .section { padding: 48px 20px; }
+  .introCopy { display: block; }
+  .intro h2 { font-size: 32px; }
+  .introCopy > p { margin-top: 20px; font-size: 18px; }
+  .row { display: block; padding: 22px 20px; margin-bottom: 16px; }
+  .titleGroup h3 { font-size: 26px; }
+  .kicker { margin-bottom: 12px; }
+  .artwork { gap: 18px; margin: 14px 0 18px; padding: 0; }
+  .artwork img { width: 76px; height: 102px; }
+  .artwork span { font-size: 18px; }
+  .headingReveal { padding-bottom: 12px; margin-bottom: 15px; }
+  .details > p { font-size: 17px; line-height: 1.4; }
+  .details ul { margin: 14px 0; }
+  .details li a { padding: 9px 0; font-size: 15px; }
+  .explore { padding: 11px 16px; font-size: 15px; }
+  .line { display: none; }
+  .section[data-rail] .stage { height: min(720px, calc(100svh - 104px)); }
+  .section[data-rail] .line { display: block; left: 20px; right: 20px; bottom: 10px; }
+}
 @media(prefers-reduced-motion:reduce) { .section * { transition: none !important; } }

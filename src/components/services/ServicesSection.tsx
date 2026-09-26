@@ -34,7 +34,7 @@ export function ServicesSection() {
     const media = gsap.matchMedia();
 
     media.add(
-      "(min-width: 768px) and (min-height: 600px) and (prefers-reduced-motion: no-preference)",
+      "(prefers-reduced-motion: no-preference)",
       () => {
         root.dataset.rail = "true";
         const parts = rows.map((row) => ({
@@ -135,37 +135,6 @@ export function ServicesSection() {
       },
     );
 
-    media.add(
-      "((max-width: 767px) or (max-height: 599px)) and (prefers-reduced-motion: no-preference)",
-      () => {
-        rows.forEach((row) => {
-          gsap
-            .timeline({
-              scrollTrigger: {
-                trigger: row,
-                start: "top 85%",
-                end: "top 35%",
-                scrub: SCROLL_SCRUB,
-              },
-            })
-            .from(row.querySelector("[data-artwork]"), {
-              opacity: 0,
-              y: 35,
-              scale: 0.9,
-              duration: 0.85,
-            })
-            .from(row.querySelector("[data-title-line]"), {
-              scaleX: 0,
-              duration: 0.45,
-            })
-            .from(
-              row.querySelector("h3"),
-              { yPercent: 110, opacity: 0, duration: 0.75, ease: "power3.out" },
-              "-=0.1",
-            );
-        });
-      },
-    );
     return () => {
       media.revert();
     };
@@ -211,6 +180,7 @@ export function ServicesSection() {
                     width={1086}
                     height={1448}
                     sizes="180px"
+                    priority={index === 0}
                   />
                   <span>
                     Ideas.

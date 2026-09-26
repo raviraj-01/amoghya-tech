@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -22,6 +23,7 @@ import {
   Compass,
 } from "lucide-react";
 import { serviceRailData } from "@/components/services/service-rail-data";
+import { mediaUrl } from "@/lib/media-url";
 import styles from "./Navbar.module.css";
 
 const pages = [
@@ -77,10 +79,23 @@ export function Navbar() {
       return;
     }
 
-    const updateVisibility = () => setHomeNavVisible(window.scrollY > 12);
+    const updateVisibility = () => {
+      const hasAnimatedIntro = Boolean(
+        document.querySelector(".amo-experience"),
+      );
+      setHomeNavVisible(!hasAnimatedIntro || window.scrollY > 12);
+    };
     updateVisibility();
     window.addEventListener("scroll", updateVisibility, { passive: true });
-    return () => window.removeEventListener("scroll", updateVisibility);
+    const modeObserver = new MutationObserver(updateVisibility);
+    modeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["data-amo-experience"],
+    });
+    return () => {
+      window.removeEventListener("scroll", updateVisibility);
+      modeObserver.disconnect();
+    };
   }, [isHome]);
   useEffect(() => {
     const outside = (event: PointerEvent) => {
@@ -162,10 +177,21 @@ export function Navbar() {
       <div className={styles.shell}>
         <Link href="/" className={styles.brand} onClick={close}>
           <span className={styles.mark}>VAT</span>
-          <span className={styles.brandCopy}>
-            <span>{isHome ? "Amoghya" : "Vyara Amogya"}</span>
-            <small>Beyond Your Expectations</small>
-          </span>
+          {isHome ? (
+            <Image
+              src="/image/navbar-amo-logo.png"
+              alt="Amoghya Creative Studio"
+              width={1520}
+              height={992}
+              className={styles.homeLogo}
+              priority
+            />
+          ) : (
+            <span className={styles.brandCopy}>
+              <span>Vyara Amogya</span>
+              <small>Beyond Your Expectations</small>
+            </span>
+          )}
         </Link>
         <nav className={styles.desktopNav} aria-label="Main navigation">
           {pages.map((item) =>

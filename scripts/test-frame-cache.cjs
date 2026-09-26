@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('typescript');
-const pending = [], requests = [], decodes = [], objects = new Map();
+const pending = [], requests = [], aborts = [], decodes = [], objects = new Map();
 let id = 0;
 class FakeImage {
   naturalWidth = 1120;
@@ -19,20 +19,34 @@ vm.runInNewContext(compiled, {
   fetch(source, options) {
     requests.push(source);
     return new Promise((resolve, reject) => {
-      options.signal.addEventListener('abort', () => reject(new Error('aborted')));
+      options.signal.addEventListener('abort', () => {
+        aborts.push(source);
+        reject(new Error('aborted'));
+      });
       pending.push({ source, resolve: (ok = true, size = 17000) => resolve({ ok, status: ok ? 200 : 404, blob: async () => ({ size }) }) });
     });
   },
 });
 const { FrameCache } = exportsObject;
-const flush = () => new Promise(resolve => setImmediate(resolve));
+const flush = () => new Promise(resolve => setTimeout(resolve, 1));
 const url = n => `/frames-webp/frame-1/ezgif-frame-${n}.webp`;
 async function settle() {
-  while (pending.length || decodes.length) {
-    pending.splice(0).forEach(p => p.resolve());
-    await flush();
-    decodes.splice(0).forEach(resolve => resolve());
-    await flush();
+  let idleTicks = 0;
+  while (idleTicks < 3) {
+    if (pending.length) {
+      idleTicks = 0;
+      pending.splice(0).forEach(p => p.resolve());
+      await flush();
+    }
+    if (decodes.length) {
+      idleTicks = 0;
+      decodes.splice(0).forEach(resolve => resolve());
+      await flush();
+    }
+    if (!pending.length && !decodes.length) {
+      idleTicks += 1;
+      await flush();
+    }
   }
 }
 (async () => {
@@ -61,6 +75,24 @@ async function settle() {
   assert.equal(cache.stats().peakActive, 4);
   cache.dispose();
   assert.equal(objects.size, 0, 'object URLs released on eviction/unmount');
+  const mobileStart = requests.length;
+  const mobile = new FrameCache(url => `https://cdn.example/mobile${url}`, {
+    maxDecoded: 20, maxConcurrent: 2, cancelObsolete: true,
+  });
+  mobile.request(Array.from({ length: 25 }, (_, i) => url(2000 + i)));
+  assert.equal(mobile.stats().active, 2, 'mobile limits active frame requests');
+  const mobileInitialRequests = requests.slice(-2);
+  const mobileAbortStart = aborts.length;
+  mobile.request(Array.from({ length: 25 }, (_, i) => url(3000 + i)));
+  assert.deepEqual(aborts.slice(mobileAbortStart), mobileInitialRequests,
+    'the active requests from an obsolete mobile window are aborted');
+  await flush();
+  await settle();
+  assert.ok(mobile.stats().decoded <= 20, 'mobile decoded cache stays bounded');
+  assert.equal(mobile.stats().peakActive, 2, 'mobile request peak respects its limit');
+  assert.ok(!requests.slice(mobileStart).some(source => /frame-200[2-9]/.test(source)),
+    'obsolete mobile window is canceled before queued frames start');
+  mobile.dispose();
   const remote = new FrameCache(() => 'https://cdn.example/broken.webp');
   remote.request([url(999)]);
   pending.shift().resolve(false); await flush();
@@ -83,5 +115,5 @@ async function settle() {
   const count = requests.length;
   large.request([url(301)]);
   assert.equal(requests.length, count);
-  console.log('PASS: decode readiness, four-load concurrency, latest-window priority, bounded caches, no repeat download after decoded eviction, local fallback, disposal.');
+  console.log('PASS: desktop and mobile concurrency, mobile window cancellation, decode readiness, latest-window priority, bounded caches, no repeat download after decoded eviction, local fallback, disposal.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

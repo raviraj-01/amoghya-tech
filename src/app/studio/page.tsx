@@ -3,10 +3,13 @@ import Link from "next/link";
 import { ArrowUpRight, Camera, Video, Film, Clapperboard, ScanLine, WandSparkles, Check, Mail } from "lucide-react";
 import { CONTACT_EMAIL } from "@/lib/contact-details";
 import styles from "@/components/offerings/Offerings.module.css";
+import { openGraphForPage } from "@/lib/seo";
 
 export const metadata = {
   title: "Studio & Creative Production",
   description: "Product and corporate photography, brand films, reels, drone content, motion graphics and video editing from Amoghya.",
+  alternates: { canonical: "/studio" },
+  openGraph: openGraphForPage("/studio", "Studio & Creative Production", "Product and corporate photography, brand films, reels, drone content, motion graphics and video editing from Amoghya."),
 };
 
 // Customer Pricing & Offers, section 11. No expired rates or equipment claims.

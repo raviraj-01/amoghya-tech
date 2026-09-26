@@ -2,10 +2,13 @@ import { ArrowUpRight, Mail, MapPin, MessageSquare } from "lucide-react";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { CONTACT_EMAIL } from "@/lib/contact-details";
 import styles from "./contact.module.css";
+import { openGraphForPage } from "@/lib/seo";
 
 export const metadata = {
   title: "Contact & Start a Project | Vyara Amogya Technologies",
   description: "Get in touch with our team to start a new project, book studio time, or request a custom proposal.",
+  alternates: { canonical: "/contact" },
+  openGraph: openGraphForPage("/contact", "Contact & Start a Project | Vyara Amogya Technologies", "Get in touch with our team to start a new project, book studio time, or request a custom proposal."),
 };
 
 export default function ContactPage() {

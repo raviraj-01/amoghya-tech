@@ -390,6 +390,13 @@
   font-size: 13px;
 }
 
+.homeHeader .homeLogo {
+  display: block;
+  width: 190px;
+  height: 64px;
+  object-fit: contain;
+}
+
 .homeHeader .menuButton {
   display: flex;
   gap: 12px;
@@ -493,6 +500,11 @@
 
   .homeHeader .brandCopy {
     font-size: 23px;
+  }
+
+  .homeHeader .homeLogo {
+    width: 150px;
+    height: 48px;
   }
 
   .homeHeader .brandCopy small,

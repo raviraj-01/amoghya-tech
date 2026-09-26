@@ -4,6 +4,7 @@ import { Shield, LayoutDashboard, FileText, DollarSign, Bot, KeyRound, ArrowLeft
 export const metadata = {
   title: "Admin Control Center | Vyara Amogya Technologies",
   description: "Protected commercial operations and content management console.",
+  robots: { index: false, follow: false },
 };
 
 const ADMIN_NAV = [

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { ServiceDetail } from "@/components/services/ServiceDetail";
 import { serviceRailData } from "@/components/services/service-rail-data";
+import { openGraphForPage } from "@/lib/seo";
 
 interface ServiceDetailPageProps {
   params: {
@@ -11,7 +12,15 @@ interface ServiceDetailPageProps {
 
 export function generateMetadata({ params }: ServiceDetailPageProps) {
   const service = serviceRailData.find(item => item.slug === params.slug);
-  return service ? { title: `${service.title} | Amoghya Technologies`, description: service.description } : {};
+  const path = `/services/${params.slug}`;
+  const title = `${service?.title ?? params.slug} | Amoghya Technologies`;
+  const description = service?.description ?? "Explore this service from Amoghya Technologies.";
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: openGraphForPage(path, title, description),
+  };
 }
 
 export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {

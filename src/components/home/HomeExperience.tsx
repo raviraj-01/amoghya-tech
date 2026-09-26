@@ -60,6 +60,9 @@ const CONTENT_ENTER_START = 0.3;
 const CONTENT_ENTER_RANGE = 0.18;
 const CONTENT_EXIT_RANGE = 0.16;
 const MOBILE_BREAKPOINT = 768;
+const MOBILE_FRAME_WIDTH = 720;
+const MOBILE_DECODED_FRAME_LIMIT = 20;
+const MOBILE_REQUEST_CONCURRENCY = 2;
 const FRAME_RENDER_SCALE = 0.58;
 const FRAME_BACKGROUND = "#ededeb";
 
@@ -162,6 +165,18 @@ function pngUrl(url: string) {
   return url.replace("/frames-webp/", "/frames/").replace(/\.webp$/, ".png");
 }
 
+function mobileFrameUrl(url: string) {
+  const resolved = mediaUrl(url);
+  const mobileTransform = `c_limit,w_${MOBILE_FRAME_WIDTH},q_auto:eco,f_webp`;
+
+  // Manifest URLs already contain desktop transforms. Replace the full transform
+  // chain before the Cloudinary version segment instead of stacking transforms.
+  return resolved.replace(
+    /\/image\/upload\/(?:[^/]+\/)*(v\d+\/.*)$/,
+    `/image/upload/${mobileTransform}/$1`,
+  );
+}
+
 function lastFrameUrl(folder: FrameFolder) {
   const frames = frameNumbers(folder);
   return frameUrl(folder.id, frames[frames.length - 1]);
@@ -232,6 +247,7 @@ export function HomeExperience() {
 
   const enable3D = useExperienceStore((s) => s.enable3D);
   const [isStatic, setIsStatic] = useState<boolean | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [autoplayDone, setAutoplayDone] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
   const characterRef = useRef<HTMLDivElement>(null);
@@ -268,14 +284,14 @@ export function HomeExperience() {
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.5);
     const width = Math.floor(rect.width * dpr);
     const height = Math.floor(rect.height * dpr);
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
     }
-  }, []);
+  }, [isMobile]);
 
   const drawImage = useCallback(
     (
@@ -307,7 +323,7 @@ export function HomeExperience() {
       const regularRatio = Math.min(
         preferredRatio,
         (ch * 0.78) / (height * 1.137),
-      );
+      ) * (isMobile ? 0.7 : 1);
       // The canvas includes overscan for AMO's path; fit the intro to the actual viewport.
       const viewportWidth = pinRef.current?.clientWidth ?? cw;
       const viewportHeight = pinRef.current?.clientHeight ?? ch;
@@ -318,7 +334,8 @@ export function HomeExperience() {
       const drawW = width * ratio;
       const drawH = height * ratio;
       const x = (cw - drawW) / 2;
-      const y = (ch - drawH) / 2;
+      const mobileLift = isMobile ? ch * 0.15 * (1 - introPresence) : 0;
+      const y = (ch - drawH) / 2 - mobileLift;
 
       const layer = imageLayerRef.current ?? document.createElement("canvas");
       imageLayerRef.current = layer;
@@ -425,7 +442,7 @@ export function HomeExperience() {
 
       return true;
     },
-    [],
+    [isMobile],
   );
 
   const preloadFrames = useCallback((folderId: number, frameIndex: number) => {
@@ -444,21 +461,24 @@ export function HomeExperience() {
     const previous = FRAME_URLS[folderId - 1];
     if (previous && index / (urls.length - 1) <= CROSSFADE_PROGRESS)
       wanted.push(previous[previous.length - 1]);
-    for (let offset = 1; offset <= 28; offset++) {
+    const ahead = isMobile ? 10 : 28;
+    const behind = isMobile ? 3 : 8;
+    const nextSceneBuffer = isMobile ? 4 : 6;
+    for (let offset = 1; offset <= ahead; offset++) {
       if (urls[index + offset * direction])
         wanted.push(urls[index + offset * direction]);
-      if (folderId > 0 && offset <= 8 && urls[index - offset * direction])
+      if (folderId > 0 && offset <= behind && urls[index - offset * direction])
         wanted.push(urls[index - offset * direction]);
     }
     // Keep the next scene's opening ready, including for a fast wheel or anchor jump.
-    if (direction > 0 ? index >= urls.length - 28 : index < 28)
+    if (direction > 0 ? index >= urls.length - ahead : index < ahead)
       wanted.push(
         ...(direction > 0
-          ? (FRAME_URLS[folderId + 1]?.slice(0, 6) ?? [])
-          : (previous?.slice(-6).reverse() ?? [])),
+          ? (FRAME_URLS[folderId + 1]?.slice(0, nextSceneBuffer) ?? [])
+          : (previous?.slice(-nextSceneBuffer).reverse() ?? [])),
       );
     cacheRef.current?.request(wanted);
-  }, []);
+  }, [isMobile]);
 
   const renderFrame = useCallback(
     (folderId: number, frameFloat: number, allowNearby = false) => {
@@ -598,13 +618,12 @@ export function HomeExperience() {
     const media = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    const sync = () =>
+    const sync = () => {
+      setIsMobile(media.matches);
       setIsStatic(
-        media.matches ||
-          reduce.matches ||
-          !enable3D ||
-          Boolean(window.location.hash),
+        reduce.matches || !enable3D || Boolean(window.location.hash),
       );
+    };
     sync();
 
     media.addEventListener("change", sync);
@@ -618,7 +637,13 @@ export function HomeExperience() {
 
   useEffect(() => {
     if (isStatic !== false) return;
-    const cache = new FrameCache(mediaUrl);
+    const cache = isMobile
+      ? new FrameCache(mobileFrameUrl, {
+          maxDecoded: MOBILE_DECODED_FRAME_LIMIT,
+          maxConcurrent: MOBILE_REQUEST_CONCURRENCY,
+          cancelObsolete: true,
+        })
+      : new FrameCache(mediaUrl);
     cacheRef.current = cache;
     resizeCanvas();
     lastRenderRef.current = "";
@@ -626,14 +651,20 @@ export function HomeExperience() {
     if (returning !== null) {
       const frame = frameFromScrollProgress(returning / scrollDistance);
       preloadFrames(frame.folderId, frame.localFrame);
-    } else
-      cache.request([FRAME_URLS[0].at(-1)!, ...FRAME_URLS[1].slice(0, 29)]);
+    } else {
+      const openingFrames = isMobile ? 8 : 29;
+      cache.request([
+        FRAME_URLS[0].at(-1)!,
+        ...FRAME_URLS[1].slice(0, openingFrames),
+      ]);
+    }
     return () => {
       cache.dispose();
       cacheRef.current = null;
     };
   }, [
     isStatic,
+    isMobile,
     preloadFrames,
     resizeCanvas,
     frameFromScrollProgress,
@@ -658,7 +689,7 @@ export function HomeExperience() {
     video.playsInline = true;
     video.preload = "auto";
     video.src =
-      "https://res.cloudinary.com/dtgvkkgbk/video/upload/v1790320347/video_spwnbl.mp4";
+      "https://res.cloudinary.com/dtgvkkgbk/video/upload/q_auto:eco/v1790320347/video_spwnbl.mp4";
     let videoFailed = false;
     let videoEnded = false;
     let lastVideoTime = -1;
@@ -997,7 +1028,7 @@ export function HomeExperience() {
       >
         <div
           ref={pinRef}
-          className="relative h-[100svh] min-h-[600px] overflow-hidden"
+          className={`relative h-[100svh] ${isMobile ? "min-h-[500px]" : "min-h-[600px]"} overflow-hidden`}
           style={{ backgroundColor: FRAME_BACKGROUND }}
         >
           <div
@@ -1027,10 +1058,12 @@ export function HomeExperience() {
 
           <div
             ref={contentRef}
-            className={[
-              "absolute top-1/2 w-[min(35vw,410px)] -translate-y-1/2",
-              contentOnRight ? "right-[8vw]" : "left-[8vw]",
-            ].join(" ")}
+            className={isMobile
+              ? "absolute inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-10 max-h-[42svh] overflow-y-auto rounded-sm bg-[#ededeb]/90 p-4 shadow-[0_12px_32px_rgba(0,0,0,0.1)] backdrop-blur-sm"
+              : [
+                  "absolute top-1/2 w-[min(35vw,410px)] -translate-y-1/2",
+                  contentOnRight ? "right-[8vw]" : "left-[8vw]",
+                ].join(" ")}
             style={{ visibility: "hidden" }}
             aria-hidden="true"
           >
